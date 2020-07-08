@@ -1,0 +1,465 @@
+---
+title: "2019_05_10_mRNA_noise_analysis.Rmd"
+author: "Toni Beltran"
+date: "10/05/2019"
+output: html_document
+---
+
+# Analysis of variability in mRNA levels
+
+Here we systematically look at the variability in mRNA levels in order to compare to the variability at the small RNA level. We use two measurements as a baseline for variability:
+    (1) technical noise calculated from a spike-in S. pombe total RNA sample (10%)
+    (2) the noise-mean relationship calculated from the C. elegans data
+
+## Fraction of c. elegans and s. pombe reads
+
+```{r load data, gen 25}
+
+library(ggplot2)
+library(MASS)
+library(viridis)
+library(msir)
+library(gplots)
+library(RColorBrewer)
+library(ggpubr)
+library(OneR)
+library(scales)
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/06_Figure4")
+
+cel_gene_names<-read.table("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/01_Raw_counts/RAW_RNAseq_COUNTS/gene_names")
+nrow(cel_gene_names)
+
+#gen 25 samples
+RNAseq_counts_gen25<-read.table("../01_Raw_counts/RAW_RNAseq_with_pombe_spike-in/RNA-seq_25thgen_pombe_spike-in.txt")
+RNAseq_counts_gen25$V1<-as.character(RNAseq_counts_gen25$V1)
+RNAseq_counts_gen25[1:20320,"V1"]<-as.character(cel_gene_names$V1[1:20320])
+
+which(table(RNAseq_counts_gen25$V1)>1)
+
+RNAseq_counts_gen25[which(RNAseq_counts_gen25$V1=="SPAC16E8.18"),]
+RNAseq_counts_gen25[which(RNAseq_counts_gen25$V1=="SPBC3B8.10"),]
+RNAseq_counts_gen25<-RNAseq_counts_gen25[-c(20749,23943),]
+
+rownames(RNAseq_counts_gen25)<-RNAseq_counts_gen25$V1
+RNAseq_counts_gen25$V1<-NULL
+RNAseq_counts_gen25<-RNAseq_counts_gen25[,1:11]
+colnames(RNAseq_counts_gen25)<-c("A","B","C","D","F","G","H","I","J","K","L")
+
+spo_genes<-read.table("spo_genes_form")
+
+colSums(RNAseq_counts_gen25)
+colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+colSums(RNAseq_counts_gen25)-colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+colSums(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+
+colSums(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])/colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+
+barplot(rbind(colSums(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+              ,colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])),ylab="total reads",
+        main="gen 25 samples")
+barplot(prop.table(rbind(colSums(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])
+              ,colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),])),margin=2),ylab="fraction of reads", main="gen 25 samples")
+
+```
+
+
+##Generation 100 samples
+
+```{r gen 100, load data}
+
+RNAseq_counts_gen100<-read.table("../01_Raw_counts/RAW_RNAseq_with_pombe_spike-in/RNA-seq_100thgen_pombe_spike-in.txt")
+
+RNAseq_counts_gen100$V1<-as.character(RNAseq_counts_gen100$V1)
+RNAseq_counts_gen100[1:20320,"V1"]<-as.character(cel_gene_names$V1[1:20320])
+
+which(table(RNAseq_counts_gen100$V1)>1)
+
+RNAseq_counts_gen100[which(RNAseq_counts_gen100$V1=="SPAC16E8.18"),]
+RNAseq_counts_gen100[which(RNAseq_counts_gen100$V1=="SPBC3B8.10"),]
+RNAseq_counts_gen100<-RNAseq_counts_gen100[-c(20749,23943),]
+
+rownames(RNAseq_counts_gen100)<-RNAseq_counts_gen100$V1
+RNAseq_counts_gen100$V1<-NULL
+colnames(RNAseq_counts_gen100)<-c("A","B","C","D","F","G","H","I","J","K","L")
+
+spo_genes<-read.table("spo_genes_form")
+
+
+colSums(RNAseq_counts_gen100)
+colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+colSums(RNAseq_counts_gen100)-colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+colSums(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+
+colSums(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])/colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+
+barplot(rbind(colSums(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+              ,colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])),ylab="total reads",
+        main="gen 100 samples")
+barplot(prop.table(rbind(colSums(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])
+              ,colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),])),margin=2),ylab="fraction of reads",
+        main="gen 100 samples")
+
+```
+
+## Subsampling the RNA-seq count data
+
+In order to have the same fraction of pombe reads and C. elegans reads in each sample, and the same depth of sequencing in each sample, we subsample the datasets to the minumum number of C. elegans reads and pombe reads.
+
+
+```{r subsample function}
+
+
+min(colSums(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),]))
+min(colSums(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),]))
+
+min(colSums(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),]))
+min(colSums(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),]))
+
+#function to subsample read counts from the initial table
+
+subsample_counts<-function(df,numcounts){
+  
+  final_subsampled_df<-data.frame(rownames(df)) 
+  colnames(final_subsampled_df)<-"gene_id"
+  
+  for (col in colnames(df)){
+    subsample<-sample(x = rownames(df),
+                      prob = df[,col]/sum(df[,col]),
+                      size = numcounts,replace = TRUE)
+    subsample<-as.data.frame(table(subsample))
+    colnames(subsample)<-c("gene_id",col)
+    final_subsampled_df<-merge(final_subsampled_df,subsample,by="gene_id",all=TRUE)
+    
+  }
+  final_subsampled_df[is.na(final_subsampled_df)]<-0
+  return(final_subsampled_df)
+  
+}
+
+
+#gen 25
+
+spo_subsampled<-subsample_counts(RNAseq_counts_gen25[which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),],3164044)
+colSums(spo_subsampled[,2:12])
+cel_subsampled<-subsample_counts(RNAseq_counts_gen25[-which(rownames(RNAseq_counts_gen25) %in% spo_genes$V1),],34803505)
+colSums(cel_subsampled[,2:12])
+
+RNAseq_counts_gen25<-rbind(cel_subsampled,spo_subsampled)
+rownames(RNAseq_counts_gen25)<-RNAseq_counts_gen25$gene_id
+RNAseq_counts_gen25$gene_id<-NULL
+
+cor(RNAseq_counts_gen25)
+cor(spo_subsampled[,2:12])
+cor(cel_subsampled[,2:12])
+
+
+#gen 100
+
+spo_subsampled<-subsample_counts(RNAseq_counts_gen100[which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),],4635487)
+colSums(spo_subsampled[,2:12])
+cel_subsampled<-subsample_counts(RNAseq_counts_gen100[-which(rownames(RNAseq_counts_gen100) %in% spo_genes$V1),],50391553)
+colSums(cel_subsampled[,2:12])
+
+RNAseq_counts_gen100<-rbind(cel_subsampled,spo_subsampled)
+rownames(RNAseq_counts_gen100)<-RNAseq_counts_gen100$gene_id
+RNAseq_counts_gen100$gene_id<-NULL
+
+cor(RNAseq_counts_gen100)
+cor(spo_subsampled[,2:12])
+cor(cel_subsampled[,2:12])
+
+
+```
+
+```{r heatmaps of correlation matrices}
+
+library(gplots)
+heatmap.2(cor(log2(RNAseq_counts_gen25+1)))
+heatmap.2(cor(log2(RNAseq_counts_gen100+1)))
+
+```
+
+# Normalize count data (DESeq2)
+
+```{r gen25 samples, normalise via DEseq and calculate cv2}
+
+library(DESeq2)
+
+#coldata<-cbind(c("A","B","C","D","F","G","H","I","J","K","L"))
+coldata<-cbind(rep("A",11))
+rownames(coldata)<-c("A","B","C","D","F","G","H","I","J","K","L")
+colnames(coldata)<-"condition"
+
+dds <- DESeqDataSetFromMatrix(countData = RNAseq_counts_gen25,
+                              colData = coldata,
+                              design = ~ 1)
+dds <- DESeq(dds)
+
+plot(sizeFactors(dds),colSums(RNAseq_counts_gen25))
+
+counts_deseqnorm<-counts(dds, normalized=TRUE) 
+
+
+
+colSums(counts_deseqnorm)
+
+
+#calculate cv2
+#plot cv2 vs mean
+#colour spo genes differently 
+#use spo genes to model technical noise
+#call HV cel genes from the spo model
+
+sds<-apply(counts_deseqnorm,FUN = sd,MARGIN = 1)
+means<-as.numeric(apply(counts_deseqnorm,FUN = mean,MARGIN = 1))
+
+final_dataset_gen25<-as.data.frame(counts_deseqnorm)
+final_dataset_gen25$mean<-means
+final_dataset_gen25$sd<-sds
+
+final_dataset_gen25$cv<-(final_dataset_gen25$sd/final_dataset_gen25$mean)
+final_dataset_gen25$cv2<-(final_dataset_gen25$sd/final_dataset_gen25$mean)**2
+final_dataset_gen25$ff<-(final_dataset_gen25$sd**2)/final_dataset_gen25$mean
+
+final_dataset_gen25$log10_mean<-log10(final_dataset_gen25$mean)
+final_dataset_gen25$log10_cv2<-log10(final_dataset_gen25$cv2)
+
+hist(final_dataset_gen25$cv2,breaks=100)
+
+final_dataset_gen25_cel<-final_dataset_gen25[-which(rownames(final_dataset_gen25) %in% spo_genes$V1),]
+final_dataset_gen25_spo<-final_dataset_gen25[which(rownames(final_dataset_gen25) %in% spo_genes$V1),]
+nrow(final_dataset_gen25_cel)
+nrow(final_dataset_gen25_spo)
+
+
+library("scales")
+
+
+plot(log10(final_dataset_gen25_cel$mean),log10(final_dataset_gen25_cel$cv2),col=alpha("lightblue",0.2),pch=19)
+plot(log10(final_dataset_gen25_spo$mean),log10(final_dataset_gen25_spo$cv2),col=alpha("red",0.2),pch=19)
+
+plot(log10(final_dataset_gen25_cel$mean),log10(final_dataset_gen25_cel$cv2),col=alpha("lightblue",0.2),pch=19)
+points(log10(final_dataset_gen25_spo$mean),log10(final_dataset_gen25_spo$cv2),col=alpha("red",0.2),pch=19)
+
+
+```
+
+
+
+```{r gen100 samples, normalise via DEseq and calculate cv2}
+
+
+#coldata<-cbind(c("A","B","C","D","F","G","H","I","J","K","L"))
+coldata<-cbind(rep("A",11))
+rownames(coldata)<-c("A","B","C","D","F","G","H","I","J","K","L")
+colnames(coldata)<-"condition"
+
+dds <- DESeqDataSetFromMatrix(countData = RNAseq_counts_gen100,
+                              colData = coldata,
+                              design = ~ 1)
+
+dds <- DESeq(dds)
+
+plot(sizeFactors(dds),colSums(RNAseq_counts_gen100))
+
+counts_deseqnorm<-counts(dds, normalized=TRUE) 
+
+
+
+colSums(counts_deseqnorm)
+
+
+#calculate cv2
+#plot cv2 vs mean
+#colour spo genes differently 
+#use spo genes to model technical noise
+#call HV cel genes from the spo model
+
+sds<-apply(counts_deseqnorm,FUN = sd,MARGIN = 1)
+means<-as.numeric(apply(counts_deseqnorm,FUN = mean,MARGIN = 1))
+
+final_dataset_gen100<-as.data.frame(counts_deseqnorm)
+final_dataset_gen100$mean<-means
+final_dataset_gen100$sd<-sds
+
+final_dataset_gen100$cv<-(final_dataset_gen100$sd/final_dataset_gen100$mean)
+final_dataset_gen100$cv2<-(final_dataset_gen100$sd/final_dataset_gen100$mean)**2
+final_dataset_gen100$ff<-(final_dataset_gen100$sd**2)/final_dataset_gen100$mean
+
+final_dataset_gen100$log10_mean<-log10(final_dataset_gen100$mean)
+final_dataset_gen100$log10_cv2<-log10(final_dataset_gen100$cv2)
+
+
+hist(final_dataset_gen100$cv2,breaks=100)
+
+final_dataset_gen100_cel<-final_dataset_gen100[-which(rownames(final_dataset_gen100) %in% spo_genes$V1),]
+final_dataset_gen100_spo<-final_dataset_gen100[which(rownames(final_dataset_gen100) %in% spo_genes$V1),]
+nrow(final_dataset_gen100_cel)
+nrow(final_dataset_gen100_spo)
+
+
+library("scales")
+
+
+plot(log10(final_dataset_gen100_cel$mean),log10(final_dataset_gen100_cel$cv2),col=alpha("lightblue",0.2),pch=19)
+plot(log10(final_dataset_gen100_spo$mean),log10(final_dataset_gen100_spo$cv2),col=alpha("red",0.2),pch=19)
+
+plot(log10(final_dataset_gen100_cel$mean),log10(final_dataset_gen100_cel$cv2),col=alpha("lightblue",0.2),pch=19)
+points(log10(final_dataset_gen100_spo$mean),log10(final_dataset_gen100_spo$cv2),col=alpha("red",0.2),pch=19)
+
+
+```
+
+
+#fit cel data alone
+
+Fit C. elegans counts alone, plot data together with the fit, and highlight genes with 22G-mediated epimutations to show that they are not more variable than you would expect by chance.
+
+```{r loess fit function}
+
+dat<-final_dataset_gen100_cel
+
+#density
+get_density <- function(x, y, ...) {
+  dens <- MASS::kde2d(x, y, ...)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
+
+loess_fit_and_plotres<-function(dat,thr_type,thr,return,plot1_filename,plot2_filename){
+
+dat<-dat[order(dat$mean),]
+dat<-dat[which(dat$log10_mean>0),]
+dat$ID<-rownames(dat)
+
+#fit c. elegans cv2 data
+l<-loess.sd(x = dat$log10_mean,y = dat$log10_cv2, nsigma = 1.96)
+
+l_fit<-data.frame(x=l$x,y=l$y,sd=l$sd,upper=l$upper,lower=l$lower,ID=dat$ID)
+l_fit$Z<-(dat$log10_cv2-l_fit$y)/l_fit$sd
+l_fit$pvalue<-pnorm(l_fit$Z,lower.tail = FALSE)
+
+l_fit_padj<-l_fit[which(l_fit$x>0.9999999),]
+print(nrow(l_fit_padj))
+l_fit_padj$padj<-p.adjust(l_fit_padj$pvalue,method = "fdr")
+l_fit<-merge(l_fit,l_fit_padj[,c("padj","ID")],by="ID",all.x=TRUE)
+l_fit<-l_fit[order(l_fit$x),]
+
+dat$ID<-rownames(dat)
+dat<-merge(dat,l_fit[,c("x","y","upper","lower","Z","pvalue","padj","ID")],by="ID",all.x=TRUE)
+rownames(dat)<-dat$ID; dat$ID<-NULL
+
+if (thr_type=="fdr"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$padj<thr),"sig"]<-1
+}else if (thr_type=="pval"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$pvalue<thr),"sig"]<-1
+}
+
+dat[which(dat$log10_mean<1),"sig"]<-0
+
+if (return=="none"){
+
+ggplot(dat)+geom_histogram(aes(x=pvalue))
+ggplot(dat)+geom_histogram(aes(x=padj))
+
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_cv2),color=alpha("#8da0cb",0.2))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="black",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="black")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="black",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_cv2"]),color=alpha("#66c2a5",0.4))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot1_filename,dpi=150)
+
+dat$density<-get_density(dat$log10_mean,dat$log10_cv2, n = 100)
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_cv2,color=density))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="pink",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="pink")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="pink",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_cv2"]),color=alpha("red",0.4))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot2_filename,dpi=150)
+
+}
+
+dat<-dat[order(dat$Z,decreasing=TRUE),]
+
+if (return=="all"){return(dat)
+}else if (return=="sig"){return(dat[which(dat$sig==1),])
+}else if (return=="none"){return()}
+
+}
+
+
+
+
+```
+
+Since the technical noise fits are extremely sensitive, we use instead the overall mean-noise relationship for all genes in order to identify HVGs.
+
+```{r fits}
+
+loess_fit_and_plotres(final_dataset_gen25_cel,"pval",0.05,return ="none" ,"gen25_mRNA_noise.pdf","gen25_mRNA_noise_density.pdf")
+loess_fit_and_plotres(final_dataset_gen100_cel,"pval",0.05,return = "none","gen100_mRNA_noise.pdf","gen100_mRNA_noise_density.pdf")
+
+gen_25_mRNA_noise<-loess_fit_and_plotres(final_dataset_gen25_cel,"pval",0.05,"all","gen25_mRNA_noise.pdf","gen25_mRNA_noise_density.pdf")
+gen_100_mRNA_noise<-loess_fit_and_plotres(final_dataset_gen100_cel,"pval",0.05,"all","gen100_mRNA_noise.pdf","gen100_mRNA_noise_density.pdf")
+
+HV22Gs_100<-read.table("gen_100_HV22Gs_fdr1e-4.txt",header=TRUE)
+HV22Gs_25<-read.table("gen_25_HV22Gs_fdr0.1.txt",header=TRUE)
+
+length(HV22Gs_100$x)
+length(HV22Gs_25$x)
+length(intersect(HV22Gs_100$x,HV22Gs_25$x))
+length(union(HV22Gs_100$x,HV22Gs_25$x))
+
+gen_25_mRNA_noise$HV22Gs<-factor(rep(0,nrow(gen_25_mRNA_noise)),levels=c(0,1))
+gen_25_mRNA_noise$HV22Gs[which(rownames(gen_25_mRNA_noise) %in% HV22Gs_25$x)]<-1
+gen_100_mRNA_noise$HV22Gs<-factor(rep(0,nrow(gen_100_mRNA_noise)),levels=c(0,1))
+gen_100_mRNA_noise$HV22Gs[which(rownames(gen_100_mRNA_noise) %in% HV22Gs_100$x)]<-1
+
+ggplot(gen_25_mRNA_noise)+
+  geom_point(aes(x=log10_mean,y=log10_cv2),color=alpha("lightblue",0.5))+
+  geom_point(data=gen_25_mRNA_noise[which(gen_25_mRNA_noise$HV22Gs==1),],aes(x=log10_mean,y=log10_cv2),color=alpha("red",0.8))+
+  theme_classic()+
+  geom_line(data=gen_25_mRNA_noise,aes(x=x,y=y))+
+  geom_line(data=gen_25_mRNA_noise,aes(x=x,y=upper),linetype="dashed")+
+  geom_line(data=gen_25_mRNA_noise,aes(x=x,y=lower),linetype="dashed")
+  ggtitle("25th generation lines")
+ggsave("gen25_mRNA_noise_HV22Gs.png",dpi=300,device="png")
+
+ggplot(gen_100_mRNA_noise)+
+  geom_point(aes(x=log10_mean,y=log10_cv2),color=alpha("lightblue",0.5))+
+  geom_point(data=gen_100_mRNA_noise[which(gen_100_mRNA_noise$HV22Gs==1),],aes(x=log10_mean,y=log10_cv2),color=alpha("red",0.8))+
+  theme_classic()+
+  geom_line(data=gen_100_mRNA_noise,aes(x=x,y=y))+
+  geom_line(data=gen_100_mRNA_noise,aes(x=x,y=upper),linetype="dashed")+
+  geom_line(data=gen_100_mRNA_noise,aes(x=x,y=lower),linetype="dashed")
+  ggtitle("100th generation lines")
+ggsave("gen100_mRNA_noise_HV22Gs.png",dpi=300,device="png")
+ 
+
+
+```
+
+
+# mRNA noise levels for HV22Gs
+
+```{r plot mRNA noise levels for HV22Gs}
+
+pdf("gen25_mRNA_noise_FF_boxplots_HV22Gs.pdf")
+boxplot(gen_25_mRNA_noise[which(gen_25_mRNA_noise$HV22Gs==0),"ff"],gen_25_mRNA_noise[which(gen_25_mRNA_noise$HV22Gs==1),"ff"],outline=FALSE,
+        ylab="mRNA Fano factor",names=c("rest of genes","HV22Gs"),main="25th generation lines")
+dev.off()
+
+pdf("gen100_mRNA_noise_FF_boxplots_HV22Gs.pdf")
+boxplot(gen_100_mRNA_noise[which(gen_100_mRNA_noise$HV22Gs==0),"ff"],gen_100_mRNA_noise[which(gen_100_mRNA_noise$HV22Gs==1),"ff"],outline=FALSE,
+        ylab="mRNA Fano factor",names=c("rest of genes","HV22Gs"),main="100th generation lines")
+dev.off()
+
+pdf("gen25_mRNA_noise_Zscore_boxplots_HV22Gs.pdf")
+boxplot(gen_25_mRNA_noise[which(gen_25_mRNA_noise$HV22Gs==0),"Z"],gen_25_mRNA_noise[which(gen_25_mRNA_noise$HV22Gs==1),"Z"],outline=FALSE,
+        ylab="mRNA noise Z-score",names=c("rest of genes","HV22Gs"),main="25th generation lines")
+dev.off()
+
+pdf("gen100_mRNA_noise_Zscore_boxplots_HV22Gs.pdf")
+boxplot(gen_100_mRNA_noise[which(gen_100_mRNA_noise$HV22Gs==0),"Z"],gen_100_mRNA_noise[which(gen_100_mRNA_noise$HV22Gs==1),"Z"],outline=FALSE,
+        ylab="mRNA noise Z-score",names=c("rest of genes","HV22Gs"),main="100th generation lines")
+dev.off()
+
+```

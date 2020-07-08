@@ -1,0 +1,246 @@
+---
+title: "2019_06_24_correlation_analysis_M1"
+author: "Toni Beltran"
+date: "24/06/2019"
+output: html_document
+---
+
+
+```{r load data}
+
+library(ggplot2)
+library(MASS)
+library(viridis)
+library(gplots)
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES_Dryad/08_TE_analysis_M1/")
+ttg_DEseqnorm<-read.table("22G_counts/final_counts_table/all_counts_M1_deseqnorm_averaged.txt")
+
+
+```
+
+
+```{r define cor function}
+
+plot_allvsall_cors_twoLineages<-function(df,gene_set,title,plot){
+  df<-df[which(rownames(df) %in% gene_set),]
+  
+  if (plot==TRUE){
+  heatmap.2(cor(as.matrix(df)),Rowv = FALSE,Colv = FALSE,trace="none",main=title)
+  heatmap.2(cor(as.matrix(df)),trace="none",main=title)
+  }
+  
+  gendistances<-read.table("../05_Figure3/genbygen_distances_2lineages.txt"); gendistances<-gendistances[-c(7,20),-c(7,20)]
+  colnames(gendistances)<-colnames(df)
+
+  final_cordata<-data.frame(cors="",gens="")
+  final_cordata$cors<-as.numeric(final_cordata$cors)
+  final_cordata$gens<-as.numeric(final_cordata$gens)
+  
+  for (i in seq(24)){
+    cordata<-data.frame(cors=cor(as.matrix(df))[which(gendistances==i)],gens=rep(i,length(which(gendistances==i))))
+    final_cordata<-rbind.data.frame(final_cordata,cordata)
+}
+
+final_cordata<-final_cordata[-1,]
+final_cordata$gens<-as.factor(final_cordata$gens)
+
+if (plot==TRUE){
+print(ggplot(final_cordata)+geom_dotplot(aes(x=final_cordata$gens,y=final_cordata$cors),binaxis='y', stackdir='center')+xlab("number of generations separating samples")+ylab("Pearson correlation coefficient"))+ggtitle(title)
+
+print(ggplot(final_cordata)+geom_boxplot(aes(x=final_cordata$gens,y=final_cordata$cors))+xlab("number of generations separating samples")+ylab("Pearson correlation coefficient"))+ggtitle(title)
+}
+if (plot==TRUE){
+print(cor(as.numeric(final_cordata$gens),as.numeric(final_cordata$cors)))
+print(cor.test(as.numeric(final_cordata$gens),as.numeric(final_cordata$cors)))
+}
+test<-cor.test(as.numeric(final_cordata$gens),as.numeric(final_cordata$cors))
+return(cor(as.numeric(final_cordata$gens),as.numeric(final_cordata$cors)))
+  
+}
+
+get_onelin_genes<-function(setA,setB){
+  setA_alone<-setA[-which(setA %in% setB)]
+  setB_alone<-setB[-which(setB %in% setA)]
+  return(union(setA_alone,setB_alone))
+}
+
+
+```
+
+
+```{r DEseq 1to8 vs 9to13 - remove batch genes}
+
+library(DESeq2)
+ttg_A_rawcounts<-read.table("22G_counts/final_counts_table/all_counts_M1.txt"); ttg_A_rawcounts<-ttg_A_rawcounts[,50:61]
+ttg_B_rawcounts<-read.table("22G_counts/final_counts_table/all_counts_M1.txt"); ttg_B_rawcounts<-ttg_B_rawcounts[,62:73]
+ttg_AB_rawcounts<-merge(ttg_A_rawcounts,ttg_B_rawcounts,by=0); rownames(ttg_AB_rawcounts)<-ttg_AB_rawcounts$Row.names; ttg_AB_rawcounts$Row.names<-NULL
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(rep(c(rep(1,7),rep(2,5)),2))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+hist(res$pvalue)
+hist(res$padj)
+
+nrow(res[which(res$padj<0.05 & abs(res$log2FoldChange)>1),])
+nrow(res[which(res$padj<0.1 & abs(res$log2FoldChange)>1),])
+nrow(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+removegenes_lastfive<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(c(rep(1,12),2,rep(1,3),2,rep(1,7)))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+hist(res$pvalue)
+hist(res$padj)
+
+nrow(res[which(res$padj<0.05 & abs(res$log2FoldChange)>1),])
+nrow(res[which(res$padj<0.1 & abs(res$log2FoldChange)>1),])
+nrow(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+removegenes_b1_b5<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+removebatch<-function(setA,setB){
+  #setA_alone<-setA[-which(setA %in% setB)]
+  #setB_alone<-setB[-which(setB %in% setA)]
+  unionAB<-union(setA,setB)
+  print(length(unionAB))
+  unionAB<-unionAB[-which(unionAB %in% removegenes)]
+  print(length(unionAB))
+  return(unionAB)
+}
+
+
+removegenes<-union(removegenes_lastfive,removegenes_b1_b5)
+
+```
+
+
+```{r plot correlations MAplot filtered genes}
+
+ttg_MAplot_data<-read.table("MAplot_analysis/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data<-ttg_MAplot_data[-which(ttg_MAplot_data$ID %in% removegenes),]
+ttg_MAplot_data<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+length(unique(ttg_MAplot_data$ID))
+
+plot_allvsall_cors_twoLineages(log2(ttg_DEseqnorm[,1:24]+1),ttg_MAplot_data$ID,"epimutated genes",plot=TRUE)
+
+
+```
+
+
+```{r other sets of genes that should not have this correlation}
+
+csr1_targets<-read.table("../07_Gene_Sets/CSR1_targets"); csr1_targets<-csr1_targets$x
+hrde1_targets<-read.table("../07_Gene_Sets/WAGO9_targets"); hrde1_targets<-hrde1_targets$x
+
+csr1_targets_nobatch<-removebatch(csr1_targets,csr1_targets)
+hrde1_targets_nobatch<-removebatch(hrde1_targets,hrde1_targets)
+
+plot_allvsall_cors_twoLineages(log2(ttg_DEseqnorm[,1:24]+1),csr1_targets_nobatch,"csr-1 targets",plot=TRUE)
+plot_allvsall_cors_twoLineages(log2(ttg_DEseqnorm[,1:24]+1),hrde1_targets_nobatch,"hrde-1 targets",plot=TRUE)
+
+
+
+```
+
+```{r csr-1 and hrde-1 bootstrapping analysis}
+
+length(unique(ttg_MAplot_data$ID))
+cors_csr1<-rep(0,1000)
+for (i in seq(1000)){
+  #print(i)
+  csr_1_subset<-sample(csr1_targets_nobatch,178)
+  cors_csr1[i]<-plot_allvsall_cors_twoLineages(log2(ttg_DEseqnorm[,1:24]+1),csr_1_subset,"csr-1 subsets",plot=FALSE)
+}
+csr_1_cordata<-data.frame(cors_csr1=cors_csr1)
+ggplot(csr_1_cordata)+geom_histogram(aes(x=cors_csr1),breaks=seq(-0.8,0.2,0.025))+ggtitle("CSR-1 bootstrapped correlation coefficients")+geom_vline(xintercept=-0.7739395,color="red")
+
+
+
+cors_hrde1<-rep(0,1000)
+for (i in seq(1000)){
+  #print(i)
+  hrde_1_subset<-sample(hrde1_targets_nobatch,178)
+  cors_hrde1[i]<-plot_allvsall_cors_twoLineages(log2(ttg_DEseqnorm[,1:24]+1),hrde_1_subset,"hrde-1 subsets",plot=FALSE)
+}
+hrde_1_cordata<-data.frame(cors_hrde1=cors_hrde1)
+ggplot(hrde_1_cordata)+geom_histogram(aes(x=cors_hrde1),breaks=seq(-0.8,0.2,0.025))+ggtitle("HRDE-1 bootstrapped correlation coefficients")+geom_vline(xintercept=-0.7739395,color="red")
+
+
+
+
+```
+
+
+```{r plot csr1 and ma correlations together}
+
+plot_allvsall_cors_twoLineages_return_cordata<-function(df,gene_set,title){
+  df<-df[which(rownames(df) %in% gene_set),]
+
+  gendistances<-read.table("../05_Figure3/genbygen_distances_2lineages.txt"); gendistances<-gendistances[-c(7,20),-c(7,20)]
+  colnames(gendistances)<-colnames(df)
+
+  final_cordata<-data.frame(cors="",gens="")
+  final_cordata$cors<-as.numeric(final_cordata$cors)
+  final_cordata$gens<-as.numeric(final_cordata$gens)
+  
+  for (i in seq(24)){
+    cordata<-data.frame(cors=cor(as.matrix(df))[which(gendistances==i)],gens=rep(i,length(which(gendistances==i))))
+    final_cordata<-rbind.data.frame(final_cordata,cordata)
+}
+
+final_cordata<-final_cordata[-1,]
+nrow(final_cordata)
+final_cordata$gens<-as.factor(final_cordata$gens)
+
+return(final_cordata)
+  
+}
+
+
+ma_fdr0.01_cordata<-plot_allvsall_cors_twoLineages_return_cordata(log2(ttg_DEseqnorm[,1:24]+1),unique(ttg_MAplot_data$ID),"tit")
+csr1_cordata<-plot_allvsall_cors_twoLineages_return_cordata(log2(ttg_DEseqnorm[,1:24]+1),csr1_targets_nobatch,"tit")
+ma_fdr0.01_cordata$group<-rep("ma",nrow(ma_fdr0.01_cordata))
+csr1_cordata$group<-rep("csr1",nrow(csr1_cordata))
+
+cordata_combined<-rbind(ma_fdr0.01_cordata,csr1_cordata)
+cordata_combined_csr1<-cordata_combined[which(cordata_combined$group=="csr1"),]
+cordata_combined_ma<-cordata_combined[which(cordata_combined$group=="ma"),]
+
+ggplot(cordata_combined,aes(x=gens,y=cors))+geom_dotplot(aes(fill=group,color=group),binaxis='y', stackdir='center',binwidth=0.003,alpha=0.8)+xlab("number of generations separating samples")+ylab("Pearson correlation coefficient")+
+stat_summary(data=cordata_combined[which(cordata_combined$group=="ma"),],mapping=aes(x=gens,y=cors),fun.y = median, fun.ymin = median, fun.ymax = median,geom = "point", width = 0.5,color="black")+
+stat_summary(data=cordata_combined[which(cordata_combined$group=="csr1"),],mapping=aes(x=gens,y=cors),fun.y = median, fun.ymin = median, fun.ymax = median,geom = "point", width = 0.5,color="grey")+
+  theme_classic()
+ggsave("epimutated_genes_vs_CSR1_targets_cors_dotplot.pdf",dpi="retina",width=9)
+
+
+
+fit_csr<-lm(data = cordata_combined_csr1,formula = cors~as.numeric(gens))
+summary(fit_csr)
+fit_ma<-lm(data = cordata_combined_ma,formula = cors~as.numeric(gens))
+summary(fit_ma)
+
+ggplot(cordata_combined,aes(x=gens,y=cors))+
+  geom_point(aes(fill=group,color=group),binaxis='y', stackdir='center',binwidth=0.003,alpha=0.8)+
+  xlab("number of generations separating samples")+
+  ylab("Pearson correlation coefficient")+
+  geom_abline(slope=-0.004962,intercept = 0.925436,color="red")+
+  geom_abline(slope=-0.0001813,intercept = 0.9700518,color="blue")+
+stat_summary(data=cordata_combined[which(cordata_combined$group=="ma"),],mapping=aes(x=gens,y=cors),fun.y = median, fun.ymin = median, fun.ymax = median,geom = "crossbar", width = 0.5,color="red")+
+stat_summary(data=cordata_combined[which(cordata_combined$group=="csr1"),],mapping=aes(x=gens,y=cors),fun.y = median, fun.ymin = median, fun.ymax = median,geom = "crossbar", width = 0.5,color="black")+
+  theme_classic()
+ggsave("epimutated_genes_vs_CSR1_targets_cors_dotplot_with_linefit.pdf")
+
+
+
+
+```
+

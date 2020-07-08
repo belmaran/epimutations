@@ -1,0 +1,83 @@
+---
+title: "Normalise_M1_counts"
+author: "Toni Beltran"
+date: "21/06/2019"
+output: html_document
+---
+
+```{r open data and DEseq normalise}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/08_TE_analysis_M1/22G_counts/final_counts_table")
+
+library(DESeq2)
+library(ggplot2)
+
+ttg_counts_all<-read.table("all_counts_M1.txt")
+
+barplot(colSums(ttg_counts_all),names=colnames(ttg_counts_all),las=2)
+
+cds<-DESeqDataSetFromMatrix(ttg_counts_all,
+                       colData = data.frame(cond=colnames(ttg_counts_all),row.names = colnames(ttg_counts_all)),
+                       design = ~1)
+dds<-DESeq(cds)
+sizeFactors(dds)
+
+plot(sizeFactors(dds),colSums(ttg_counts_all))
+
+ttg_counts_deseqnorm<-counts(dds,normalized=TRUE)
+
+write.table(ttg_counts_deseqnorm,quote=FALSE,file="all_counts_M1_deseqnorm.txt")
+
+```
+
+```{r average technical replicates}
+
+average_cols<-function(df,cols){
+  return(apply(df[,cols],FUN = mean,MARGIN = 1))
+}
+
+
+ttg_counts_deseqnorm_averaged<-data.frame(
+  A25=average_cols(ttg_counts_deseqnorm,cols=c("A1_25","A2_25")),
+  B25=average_cols(ttg_counts_deseqnorm,cols=c("B1_25","B2_25")),
+  C25=average_cols(ttg_counts_deseqnorm,cols=c("C1_25","C2_25","C3_25")),
+  D25=average_cols(ttg_counts_deseqnorm,cols=c("D1_25","D2_25")),
+  F25=average_cols(ttg_counts_deseqnorm,cols=c("F1_25","F2_25")),
+  G25=average_cols(ttg_counts_deseqnorm,cols=c("G1_25","G2_25")),
+  H25=average_cols(ttg_counts_deseqnorm,cols=c("H1_25","H2_25")),
+  I25=average_cols(ttg_counts_deseqnorm,cols=c("I1_25","I2_25")),
+  J25=average_cols(ttg_counts_deseqnorm,cols=c("J1_25","J2_25","J3_25")),
+  K25=average_cols(ttg_counts_deseqnorm,cols=c("K1_25","K2_25")),
+  L25=average_cols(ttg_counts_deseqnorm,cols=c("L1_25","L2_25")),
+  PMA=average_cols(ttg_counts_deseqnorm,cols=c("PMA1","PMA2","PMA3")),
+  A100=average_cols(ttg_counts_deseqnorm,cols=c("A1_100","A2_100")),
+  B100=average_cols(ttg_counts_deseqnorm,cols=c("B1_100","B2_100")),
+  C100=average_cols(ttg_counts_deseqnorm,cols=c("C1_100","C2_100")),
+  D100=average_cols(ttg_counts_deseqnorm,cols=c("D1_100","D2_100")),
+  F100=average_cols(ttg_counts_deseqnorm,cols=c("F1_100","F2_100")),
+  G100=average_cols(ttg_counts_deseqnorm,cols=c("G1_100","G2_100")),
+  H100=average_cols(ttg_counts_deseqnorm,cols=c("H1_100","H2_100")),
+  I100=average_cols(ttg_counts_deseqnorm,cols=c("I1_100","I2_100")),
+  J100=average_cols(ttg_counts_deseqnorm,cols=c("J1_100","J2_100")),
+  K100=average_cols(ttg_counts_deseqnorm,cols=c("K1_100","K2_100")),
+  L100=average_cols(ttg_counts_deseqnorm,cols=c("L1_100","L2_100")))
+
+
+ttg_counts_deseqnorm_averaged<-merge(ttg_counts_deseqnorm[,seq(50,73,1)],ttg_counts_deseqnorm_averaged,by=0)
+rownames(ttg_counts_deseqnorm_averaged)<-ttg_counts_deseqnorm_averaged$Row.names
+ttg_counts_deseqnorm_averaged$Row.names<-NULL
+
+write.table(ttg_counts_deseqnorm_averaged,quote=FALSE,file="all_counts_M1_deseqnorm_averaged.txt")
+
+
+```
+
+
+```{r correlations}
+
+library(gplots)
+heatmap.2(cor(log2(ttg_counts_deseqnorm_averaged+1)),trace="none",dendrogram = "none")
+
+```
+
+

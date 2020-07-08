@@ -1,0 +1,305 @@
+---
+title: "2019_05_02_foldchange_stabilityanalysis_control"
+author: "Toni Beltran"
+date: "02/05/2019"
+output: html_document
+---
+
+This code is an alternative mode of predicting epimutation duration from the normalized 22G count data - rather than binarizing the data, it considers the continuous range of the 22G count data to estimate duration.
+
+First, each data point xij (counts for gene i at generation j) is converted to the log2 fold change of xij relative to the mean of counts for gene i across generations; log2(xij+10)-log2(mean gene i +10). In order to stabilize fold changes for the parts of the lineage with extremely low counts, 10 pseudocpms are added - this prevents selecting small differences in 22Gs from being detected as epimutation events.
+
+Then a function scans the log2 transformed data looking for fold changes of at least 2 between consecutive data points. Each of these events is stored along with the rest of the data points following the change up to the rest of the lineage. Then a scanning function is applied to each of these events, in order to determine for how many generations the fold change remains 2 or larger than 2 relative to the pre-epimutation generation. Basically the function just loops along generations until the fold change calculated is not 2 or more, then breaks and stores the number of generations that it looped for. If it reaches the end of the lineage, the duration is stored and the event is labelled as incomplete.
+
+
+
+```{r load data}
+
+library(gplots)
+library(RColorBrewer)
+library(ggplot2)
+library(depmixS4)
+library(DESeq2)
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/Beltran_et_al_2020_NEE/05_Figure3/")
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+ttg_MAplot_data<-read.table("../03_04_Figures1-2/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+
+summary_stats_A<-data.frame(mean=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = min))
+
+summary_stats_B<-data.frame(mean=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = min))
+
+summary_stats_AB<-data.frame(mean=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=mean),
+                             min=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=min))
+
+
+```
+
+```{r DEseq}
+#DEseq to identify genes contributing to batch variation (early vs late, plus B1-B4 samples), these will be ignored in downstream analysis
+
+ttg_A_rawcounts<-read.table("../01_Raw_counts/RAW_22G_COUNTS/22G_RAW_COUNTS_lineageA.txt")
+ttg_B_rawcounts<-read.table("../01_Raw_counts/RAW_22G_COUNTS/22G_RAW_COUNTS_lineageB.txt")
+ttg_AB_rawcounts<-merge(ttg_A_rawcounts,ttg_B_rawcounts,by=0); rownames(ttg_AB_rawcounts)<-ttg_AB_rawcounts$Row.names; ttg_AB_rawcounts$Row.names<-NULL
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(rep(c(rep(1,7),rep(2,5)),2))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+
+removegenes_lastfive<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(c(rep(1,12),2,rep(1,3),2,rep(1,7)))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+removegenes_b1_b5<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+removegenes<-union(removegenes_lastfive,removegenes_b1_b5)
+length(removegenes)
+
+
+
+epimutable_genes_genbygen<-ttg_MAplot_data$ID[-which(ttg_MAplot_data$ID %in% removegenes)]
+length(unique(epimutable_genes_genbygen))
+
+ttg_DEseqnorm_epimutable_genes<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% epimutable_genes_genbygen),]
+nrow(ttg_DEseqnorm_epimutable_genes)
+
+```
+
+
+```{r logfc stability analysis}
+
+normalise_log2fcmean<-function(df,normcount_thr,stats_df){
+  df<-df[which(rownames(df) %in% rownames(stats_df[which(stats_df$mean>normcount_thr),])),]
+  stats_df<-stats_df[rownames(df),]
+  norm_df<-sweep(log2(df+10), MARGIN = 1, log2(stats_df$mean+10))
+  return(norm_df)
+}
+
+
+logged_epimutable_genes_A<-normalise_log2fcmean(ttg_DEseqnorm_epimutable_genes[,1:12],10,summary_stats_A)
+logged_epimutable_genes_B<-normalise_log2fcmean(ttg_DEseqnorm_epimutable_genes[,13:24],10,summary_stats_B)
+
+heatmap.2(as.matrix(logged_epimutable_genes_A),col = colorRampPalette(c("black","blue","white","red","yellow"))(100),Colv=FALSE,trace="none",dendrogram = "none")
+heatmap.2(as.matrix(logged_epimutable_genes_B),col = colorRampPalette(c("black","blue","white","red","yellow"))(100),Colv=FALSE,trace="none",dendrogram = "none")
+
+logged_epimutable_genes_A_diff<-t(apply(logged_epimutable_genes_A,MARGIN = 1,FUN = diff))
+logged_epimutable_genes_B_diff<-t(apply(logged_epimutable_genes_B,MARGIN = 1,FUN = diff))
+
+#number of transitions with 2-fold change in small RNA levels between consecutive generations
+length(which(abs(logged_epimutable_genes_A_diff)>=1,arr.ind = TRUE)[,"row"])
+table(which(abs(logged_epimutable_genes_A_diff)>=1,arr.ind = TRUE)[,"col"])
+
+length(which(abs(logged_epimutable_genes_B_diff)>=1,arr.ind = TRUE)[,"row"])
+table(which(abs(logged_epimutable_genes_B_diff)>=1,arr.ind = TRUE)[,"col"])
+
+#number of transitions with 4-fold change in small RNA levels between consecutive generations
+length(which(abs(logged_epimutable_genes_A_diff)>=1.5,arr.ind = TRUE)[,"row"])
+table(which(abs(logged_epimutable_genes_A_diff)>=1.5,arr.ind = TRUE)[,"col"])
+
+length(which(abs(logged_epimutable_genes_B_diff)>=1.5,arr.ind = TRUE)[,"row"])
+table(which(abs(logged_epimutable_genes_B_diff)>=1.5,arr.ind = TRUE)[,"col"])
+
+```
+
+
+```{r stability analysis function}
+
+row_stability_fcthr<-function(row){
+  row<-row[!is.na(row)]
+  first_fc<-row[2]-row[1]
+  if (first_fc<(-1)){down=TRUE
+  } else if (first_fc>1){down=FALSE
+  }
+  duration<-0
+  for (i in seq(2,length(row))){
+    if (down==TRUE){
+      if (row[i]-row[1]<1){
+        duration<-duration+1
+      }else{
+        break
+      }}
+    if (down==FALSE){
+      if (row[i]-row[1]>1){
+        duration<-duration+1
+      }else{
+        i<-(i-1)
+        break
+      }}
+  }
+  if (i==length(row)){
+    complete<-FALSE}
+  else{complete<-TRUE}
+  
+  if (down==TRUE){
+    upordown=1
+  }
+  if(down==FALSE){
+    upordown=2
+  }
+  
+  return(c(duration,complete,upordown,13-length(row)))
+}
+
+
+```
+
+```{r plot data}
+
+#linA
+A_epimuts_log2_1<-which(abs(logged_epimutable_genes_A_diff)>=1,arr.ind = TRUE)
+A_epimut_traces_log2_1<-matrix(NA,nrow = nrow(A_epimuts_log2_1),ncol=12); rownames(A_epimut_traces_log2_1)<-rownames(A_epimuts_log2_1)
+for (row in seq(nrow(A_epimuts_log2_1))){
+  r<-A_epimuts_log2_1[row,"row"]
+  c<-A_epimuts_log2_1[row,"col"]
+  
+  trace<-as.numeric(logged_epimutable_genes_A[r,c:12])
+  A_epimut_traces_log2_1[row,1:length(trace)]<-trace
+}
+
+nrow(A_epimut_traces_log2_1)
+
+
+heatmap.2(as.matrix(A_epimut_traces_log2_1),col = colorRampPalette(c("black","blue","white","red","yellow"))(100),Colv=FALSE,trace="none",dendrogram = "none",na.color = "white",main="lineage A, fc=2, 137 epimuts")
+
+epimuts_duration_fc2_A<-data.frame(t(apply(A_epimut_traces_log2_1,MARGIN = 1,FUN=row_stability_fcthr)))
+colnames(epimuts_duration_fc2_A)<-c("duration","completeness","up_or_down","stgen")
+epimuts_duration_fc2_A$ID<-rownames(A_epimut_traces_log2_1)
+
+epimuts_duration_fc2_A<-epimuts_duration_fc2_A[,c("ID", "up_or_down", "duration", "completeness", "stgen")]
+
+
+#account for missing gen7 data point
+epimuts_duration_fc2_A$stgen_corrected<-epimuts_duration_fc2_A$stgen
+epimuts_duration_fc2_A$duration_corrected<-epimuts_duration_fc2_A$duration
+for (i in seq(nrow(epimuts_duration_fc2_A))){
+  if (epimuts_duration_fc2_A[i,"stgen"]>6){
+  epimuts_duration_fc2_A[i,"stgen_corrected"]<-epimuts_duration_fc2_A[i,"stgen_corrected"]+1
+  }
+  if ((epimuts_duration_fc2_A[i,"stgen"]+epimuts_duration_fc2_A[i,"duration"])>6 & epimuts_duration_fc2_A[i,"stgen"]<7){
+  epimuts_duration_fc2_A[i,"duration_corrected"]<-epimuts_duration_fc2_A[i,"duration_corrected"]+1
+  }
+}
+
+epimuts_duration_fc2_A$duration<-epimuts_duration_fc2_A$duration_corrected
+epimuts_duration_fc2_A$stgen<-epimuts_duration_fc2_A$stgen_corrected
+epimuts_duration_fc2_A$stgen_corrected<-NULL
+epimuts_duration_fc2_A$duration_corrected<-NULL
+
+
+table(epimuts_duration_fc2_A$complete)
+table(epimuts_duration_fc2_A$duration)
+table(epimuts_duration_fc2_A[which(epimuts_duration_fc2_A$complete==0),"duration"])
+table(epimuts_duration_fc2_A[which(epimuts_duration_fc2_A$complete==1),"duration"])
+
+A_data_for_barplot<-data.frame(duration=rep(seq(1,12),2),
+                               count=c(
+                                 table(factor(epimuts_duration_fc2_A[which(epimuts_duration_fc2_A$complete==1),"duration"],levels=c(1:12))),
+                                 table(factor(epimuts_duration_fc2_A[which(epimuts_duration_fc2_A$complete==0),"duration"],levels=c(1:12)))),
+                               completeness=c(rep("complete",12),rep("incomplete",12)))
+
+# Grouped
+ggplot(A_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage A, fc2")+theme_classic()
+ggsave("logfc_duration_barplot_linA.pdf",dpi="retina")
+
+
+
+#linB
+B_epimuts_log2_1<-which(abs(logged_epimutable_genes_B_diff)>=1,arr.ind = TRUE)
+B_epimut_traces_log2_1<-matrix(NA,nrow = nrow(B_epimuts_log2_1),ncol=12); rownames(B_epimut_traces_log2_1)<-rownames(B_epimuts_log2_1)
+for (row in seq(nrow(B_epimuts_log2_1))){
+  r<-B_epimuts_log2_1[row,"row"]
+  c<-B_epimuts_log2_1[row,"col"]
+  
+  trace<-as.numeric(logged_epimutable_genes_B[r,c:12])
+  B_epimut_traces_log2_1[row,1:length(trace)]<-trace
+}
+
+nrow(B_epimut_traces_log2_1)
+
+
+heatmap.2(as.matrix(B_epimut_traces_log2_1),col = colorRampPalette(c("black","blue","white","red","yellow"))(100),Colv=FALSE,trace="none",dendrogram = "none",na.color = "white",main="lineage B, fc=2, 137 epimuts")
+
+epimuts_duration_fc2_B<-data.frame(t(apply(B_epimut_traces_log2_1,MARGIN = 1,FUN=row_stability_fcthr)))
+colnames(epimuts_duration_fc2_B)<-c("duration","completeness","up_or_down","stgen")
+epimuts_duration_fc2_B$ID<-rownames(B_epimut_traces_log2_1)
+
+epimuts_duration_fc2_B<-epimuts_duration_fc2_B[,c("ID", "up_or_down", "duration", "completeness", "stgen")]
+
+#account for missing gen7 data point
+epimuts_duration_fc2_B$stgen_corrected<-epimuts_duration_fc2_B$stgen
+epimuts_duration_fc2_B$duration_corrected<-epimuts_duration_fc2_B$duration
+for (i in seq(nrow(epimuts_duration_fc2_B))){
+  if (epimuts_duration_fc2_B[i,"stgen"]>6){
+  epimuts_duration_fc2_B[i,"stgen_corrected"]<-epimuts_duration_fc2_B[i,"stgen_corrected"]+1
+  }
+  if ((epimuts_duration_fc2_B[i,"stgen"]+epimuts_duration_fc2_B[i,"duration"])>6 & epimuts_duration_fc2_B[i,"stgen"]<7){
+  epimuts_duration_fc2_B[i,"duration_corrected"]<-epimuts_duration_fc2_B[i,"duration_corrected"]+1
+  }
+}
+
+epimuts_duration_fc2_B$duration<-epimuts_duration_fc2_B$duration_corrected
+epimuts_duration_fc2_B$stgen<-epimuts_duration_fc2_B$stgen_corrected
+epimuts_duration_fc2_B$stgen_corrected<-NULL
+epimuts_duration_fc2_B$duration_corrected<-NULL
+
+
+table(epimuts_duration_fc2_B$completeness)
+table(epimuts_duration_fc2_B$duration)
+table(epimuts_duration_fc2_B[which(epimuts_duration_fc2_B$completeness==0),"duration"])
+table(epimuts_duration_fc2_B[which(epimuts_duration_fc2_B$completeness==1),"duration"])
+
+B_data_for_barplot<-data.frame(duration=rep(seq(1,12),2),
+                               count=c(
+                                 table(factor(epimuts_duration_fc2_B[which(epimuts_duration_fc2_B$completeness==1),"duration"],levels=c(1:12))),
+                                 table(factor(epimuts_duration_fc2_B[which(epimuts_duration_fc2_B$completeness==0),"duration"],levels=c(1:12)))),
+                               completeness=c(rep("complete",12),rep("incomplete",12)))
+
+# Grouped
+ggplot(B_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage B, fc2")+theme_classic()
+ggsave("logfc_duration_barplot_linB.pdf",dpi="retina")
+
+
+#both lineages
+
+epimuts_duration_fc2_A$lineage<-rep("A",nrow(epimuts_duration_fc2_A))
+epimuts_duration_fc2_B$lineage<-rep("B",nrow(epimuts_duration_fc2_B))
+epimuts_duration_fc2_both<-rbind(epimuts_duration_fc2_A,epimuts_duration_fc2_B)
+
+table(epimuts_duration_fc2_both$complete)
+
+table(epimuts_duration_fc2_both$duration)
+table(epimuts_duration_fc2_both[which(epimuts_duration_fc2_both$complete==0),"duration"])
+table(epimuts_duration_fc2_both[which(epimuts_duration_fc2_both$complete==1),"duration"])
+
+both_data_for_barplot<-data.frame(duration=rep(seq(1,12),2),
+                               count=c(table(factor(epimuts_duration_fc2_both[which(epimuts_duration_fc2_both$complete==1),"duration"],levels=c(1:12))),
+                                       table(factor(epimuts_duration_fc2_both[which(epimuts_duration_fc2_both$complete==0),"duration"],levels=c(1:12)))),
+                               completeness=c(rep("complete",12),rep("incomplete",12)))
+
+# Grouped
+ggplot(both_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("both lineages, fc2")+theme_classic()
+ggsave("logfc_duration_barplot_both_lins.pdf",dpi="retina")
+
+
+write.table(epimuts_duration_fc2_both,file="epimutation_duration_logfc_bothlineages.txt")
+ 
+```
+
+

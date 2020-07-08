@@ -1,0 +1,717 @@
+---
+title: "2019_04_26_overlap_analysis_epimuts_genbygen.Rmd"
+author: "Toni Beltran"
+date: "26/04/2019"
+output: html_document
+---
+
+This code calculates the enrichment of epimutable genes in several gene classes defined according to small RNA pathway regulation, chromatin marking, evolutionary conservation, and others.
+
+
+# Load data
+
+```{r load data}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/03_Figure1/")
+
+library(MASS)
+library(ggplot2)
+library(viridis)
+library(msir)
+library(gplots)
+library(RColorBrewer)
+
+theme_set(theme_bw(base_size = 16))
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt"); ttg_DEseqnorm_gens25_100<-ttg_DEseqnorm[,25:47]
+ttg_MAplot_data<-read.table("../03_Figure1/MAplot_filtering_22Gs_gens25100_p1e-2.txt",header=TRUE)
+
+ttg_MAplot_data_p1Eminus4<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+epimutable_genes<-unique(ttg_MAplot_data_p1Eminus4$ID)
+length(epimutable_genes)
+background_epimutable_genes<-read.table("MAplot_gens25_100_BACKGROUND_LIST.txt",header=TRUE); background_epimutable_genes<-background_epimutable_genes$x
+
+ttg_MAplot_data_genbygen<-read.table("../03_Figure1/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data_genbygen_p1Eminus4<-ttg_MAplot_data_genbygen[which(ttg_MAplot_data_genbygen$padj<1e-4),]
+epimutable_genes_genbygen<-unique(ttg_MAplot_data_genbygen_p1Eminus4$ID)
+background_epimutable_genes_genbygen<-read.table("MAplot_genbygen_BACKGROUND_LIST.txt",header = TRUE); background_epimutable_genes_genbygen<-background_epimutable_genes_genbygen$x
+
+intergenes<-read.table("../06_Figure4/inter_overall_genes_linsAB_FDR0.1_nobatch.txt")
+intergenes<-intergenes$x
+background_intergenes_A<-read.table("../06_Figure4/inter_overall_genes_linA_BACKGROUND_LIST.txt")
+background_intergenes_B<-read.table("../06_Figure4/inter_overall_genes_linB_BACKGROUND_LIST.txt")
+background_intergenes<-union(background_intergenes_A$x,background_intergenes_B$x)
+
+HV22Gs_25<-read.table("../06_Figure4/gen_25_HV22Gs_fdr0.1.txt",header=TRUE); HV22Gs_25<-HV22Gs_25$x
+HV22Gs_100<-read.table("../06_Figure4/gen_100_HV22Gs_fdr1e-4.txt", header=TRUE); HV22Gs_100<-HV22Gs_100$x
+HV22Gs_25_background<-read.table("../06_Figure4/gen_25_HV22Gs_BACKGROUND_LIST.txt",header = TRUE); HV22Gs_25_background<-HV22Gs_25_background$x
+HV22Gs_100_background<-read.table("../06_Figure4/gen_100_HV22Gs_BACKGROUND_LIST.txt",header = TRUE); HV22Gs_100_background<-HV22Gs_100_background$x
+
+
+
+removegenes<-read.table("../05_Figure3/removegenes.txt")
+epimutable_genes_genbygen<-epimutable_genes_genbygen[-which(epimutable_genes_genbygen %in% removegenes$x)]
+background_epimutable_genes_genbygen<-background_epimutable_genes_genbygen[-which(background_epimutable_genes_genbygen %in% removegenes$x)]
+
+background_intergenes<-background_intergenes[-which(background_intergenes %in% removegenes$x)]
+
+piRNA_targets<-read.table("../07_Gene_Sets/piRNA_targets_2fold"); piRNA_targets<-piRNA_targets$x
+piRNA_targets_4x<-read.table("../07_Gene_Sets/piRNA_targets_4fold"); piRNA_targets_4x<-piRNA_targets_4x$x
+CSR1_targets<-read.table("../07_Gene_Sets/CSR1_targets"); CSR1_targets<-CSR1_targets$x
+HRDE1_targets<-read.table("../07_Gene_Sets/WAGO9_targets"); HRDE1_targets<-HRDE1_targets$x
+WAGO1_targets<-read.table("../07_Gene_Sets/WAGO1_targets"); WAGO1_targets<-WAGO1_targets$x
+nrde3_targets<-read.table("../07_Gene_Sets/nrde3_targets_zhou2014.form.txt"); nrde3_targets<-nrde3_targets$V1
+ergo1_targets<-read.table("../07_Gene_Sets/ergo1_targets_almeida2018.txt"); ergo1_targets<-ergo1_targets$V1
+alg34_targets<-read.table("../07_Gene_Sets/alg3-4_targets_almeida2018.txt"); alg34_targets<-alg34_targets$V1
+set25_targets<-read.table("../07_Gene_Sets/set25_genes_cosmidID.txt")
+set32_targets<-read.table("../07_Gene_Sets/set32_genes_cosmidID.txt")
+
+```
+
+# Overlap functions
+
+1. hypergeometric test
+2. calculation of the odds ratios of overlap
+
+```{r overlap function}
+
+print_size_and_overlap_hyptest<-function(set1,set2,background_set,print=TRUE){
+  set1<-set1[which(set1 %in% background_set)]; set2<-set2[which(set2 %in% background_set)]
+  overlap<-length(intersect(set1,set2))
+  lenset1<-length(set1)
+  lenset2<-length(set2)
+  p_value<-phyper(q=overlap,m=lenset2,n=length(background_set)-lenset2,k=lenset1,lower.tail = FALSE)
+  
+  a<-length(intersect(set1,set2))
+  b<-length(set1)-a
+  c<-length(set2)-a
+  d<-length(background_set)-a-b-c
+  OR=(a/b)/(c/d)
+  
+  if (print==TRUE){
+  print(c(lenset1,lenset2,overlap,p_value,OR))}
+  return(c(lenset1,lenset2,overlap,p_value,OR))
+}
+
+calculate_odds_ratio<-function(set1,set2,background_set){
+  set1<-set1[which(set1 %in% background_set)]; set2<-set2[which(set2 %in% background_set)]
+
+  a<-length(intersect(set1,set2))
+  b<-length(set1)-a
+  c<-length(set2)-a
+  d<-length(background_set)-a-b-c
+  return((a/b)/(c/d))
+}
+
+```
+
+# Odds ratio enrichments of epimutation sets with CSR-1, WAGO-1, HRDE-1 and CSR-1 genes
+
+## 25th and 100th generation lines
+
+```{r overlaps epimutations figure 1}
+
+epimutations_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(piRNA_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(WAGO1_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(HRDE1_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(nrde3_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(ergo1_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(alg34_targets,epimutable_genes,background_epimutable_genes),
+print_size_and_overlap_hyptest(CSR1_targets,epimutable_genes,background_epimutable_genes)))
+
+rownames(epimutations_overlaps)<-c("piRNA targets","WAGO-1 targets","HRDE-1 targets","NRDE-3 targets","ERGO-1 targets","ALG-3/4 targets","CSR-1 targets")
+colnames(epimutations_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+
+print_size_and_overlap_hyptest(union(union(piRNA_targets,WAGO1_targets),HRDE1_targets),epimutable_genes,background_epimutable_genes)
+
+epimutable_genes_noiso<-read.table("../03_Figure1/epimuts_25100_noiso.txt")
+bckg_noiso<-read.table("../03_Figure1/bckg_noiso")
+
+print_size_and_overlap_hyptest(set25_targets$x,epimutable_genes_noiso$V2,bckg_noiso$V2)
+print_size_and_overlap_hyptest(set32_targets$x,epimutable_genes_noiso$V2,bckg_noiso$V2)
+
+
+plot_heatmap<-function(overlap_df,group_label,filename){
+
+group_labels<-paste(paste(rownames(overlap_df),as.character(overlap_df$problem_set_size),sep = " ("),")",sep="")
+  
+print(ggplot(overlap_df,aes(x=rep(11,nrow(overlap_df)),y=seq(nrow(overlap_df),1,-1),fill=log2(OR)))+geom_tile()+theme_classic()+
+  theme(axis.line=element_blank(),axis.text.x=element_blank(),
+          axis.text.y=element_blank(),axis.ticks=element_blank(),
+          axis.title.x=element_blank(),
+          axis.title.y=element_blank(),
+          panel.background=element_blank(),panel.border=element_blank(),panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank(),plot.background=element_blank())+
+  scale_fill_distiller(palette = "RdBu",values=scales::rescale(c(min(log2(overlap_df$OR)),0,max(log2(overlap_df$OR)))))+
+    coord_cartesian(xlim=c(0,13),ylim=c(-2,10))+
+    geom_text(aes(x=rep(8,nrow(overlap_df)),y=seq(nrow(overlap_df),1,-1),label=group_labels))+
+    geom_text(aes(x=rep(11,nrow(overlap_df)),y=seq(nrow(overlap_df),1,-1),label=overlap_size))+
+    geom_text(aes(x=rep(12.5,nrow(overlap_df)),y=seq(nrow(overlap_df),1,-1),
+                  label=paste("p=",formatC(hyper_p, format = "e", digits = 2),sep="")),size=3.25)+
+    geom_text(aes(x=11,y=8.5,label=paste(paste(group_label,as.character(epimutations_set_size[1]),sep = "\n("),")",sep="")))+
+    geom_text(aes(x=12.5,y=-0.5,label="hypergeometric\ntest p-value"),size=3))
+
+ggsave(filename = filename,dpi="retina")
+
+}
+
+
+plot_heatmap(epimutations_overlaps,"epimutable genes","../03_Figure1/geom_tile_OR_enrichment_epimuts_gens25-100.pdf")
+
+
+
+```
+
+
+## Consecutive generations experiment
+
+```{r overlaps epimutations genbygen Figure 3}
+
+epimutations_genbygen_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(piRNA_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(WAGO1_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(HRDE1_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(nrde3_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(ergo1_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(alg34_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen),
+print_size_and_overlap_hyptest(CSR1_targets,epimutable_genes_genbygen,background_epimutable_genes_genbygen)))
+
+rownames(epimutations_genbygen_overlaps)<-c("piRNA targets","WAGO-1 targets","HRDE-1 targets","NRDE-3 targets","ERGO-1 targets","ALG-3/4 targets","CSR-1 targets")
+colnames(epimutations_genbygen_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+
+plot_heatmap(epimutations_genbygen_overlaps,"epimutable genes\nshort-term experiment","../05_Figure3/geom_tile_OR_enrichment_genbygen.pdf")
+
+```
+
+## Genes with reduced intergenerational variance in the consecutive generation experiment
+
+```{r overlaps intergenes}
+
+intergenes_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(piRNA_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(WAGO1_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(HRDE1_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(nrde3_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(ergo1_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(alg34_targets,intergenes,background_intergenes),
+print_size_and_overlap_hyptest(CSR1_targets,intergenes,background_intergenes)))
+
+rownames(intergenes_overlaps)<-c("piRNA targets","WAGO-1 targets","HRDE-1 targets","NRDE-3 targets","ERGO-1 targets","ALG-3/4 targets","CSR-1 targets")
+colnames(intergenes_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+
+
+print_size_and_overlap_hyptest(epimutable_genes,intergenes,background_intergenes)
+print_size_and_overlap_hyptest(epimutable_genes_genbygen,intergenes,background_intergenes)
+print_size_and_overlap_hyptest(union(union(piRNA_targets,WAGO1_targets),HRDE1_targets),intergenes,background_intergenes)
+
+
+
+plot_heatmap(intergenes_overlaps,"genes with heritable\nvariation in 22G-RNAs","../06_Figure4/geom_tile_OR_enrichment_intergenes.pdf")
+
+
+
+```
+
+## Genes with highly variable 22Gs
+
+```{r overlaps HV22Gs}
+
+HV22Gs<-union(HV22Gs_100,HV22Gs_25)
+HV22Gs_background<-union(HV22Gs_100_background,HV22Gs_25_background)
+
+HV22Gs_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(piRNA_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(WAGO1_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(HRDE1_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(nrde3_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(ergo1_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(alg34_targets,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(CSR1_targets,HV22Gs,HV22Gs_background)))
+
+rownames(HV22Gs_overlaps)<-c("piRNA targets","WAGO-1 targets","HRDE-1 targets","NRDE-3 targets","ERGO-1 targets","ALG-3/4 targets","CSR-1 targets")
+colnames(HV22Gs_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+
+
+print_size_and_overlap_hyptest(epimutable_genes,HV22Gs,HV22Gs_background)
+print_size_and_overlap_hyptest(epimutable_genes_genbygen,HV22Gs,HV22Gs_background)
+print_size_and_overlap_hyptest(union(union(piRNA_targets,WAGO1_targets),HRDE1_targets),HV22Gs,HV22Gs_background)
+
+
+plot_heatmap(HV22Gs_overlaps,"genes with hypervariable\n22G-RNAs","../06_Figure4/geom_tile_OR_enrichment_HV22Gs.pdf")
+
+
+
+
+```
+
+## Pairwise overlap analysis and clustering of the overlap matrix
+
+```{r overlap analysis with all types of features}
+
+nrde3_targets<-read.table("../07_Gene_Sets/nrde3_targets_zhou2014.form.txt",header=TRUE)
+alg34_targets<-read.table("../07_Gene_Sets/alg3-4_targets_almeida2018.txt")
+ergo1_targets<-read.table("../07_Gene_Sets/ergo1_targets_almeida2018.txt",header=TRUE)
+
+PATCs<-read.table("../07_Gene_Sets/PATC_Density_Firelab.txt",sep="\t",header = TRUE)
+ortiz_dataset<-read.table("../07_Gene_Sets/Ortiz_et_al_germline_expression.csv",sep="\t",header=TRUE)
+
+JA_hetero<-read.table("../07_Gene_Sets/JApaper_genebygene_overlapwithpeaks.txt",sep="\t",header = TRUE)
+
+active<-read.table("../07_Gene_Sets/active_cosmidID")
+border<-read.table("../07_Gene_Sets/border_cosmidID")
+regulated<-read.table("../07_Gene_Sets/regulated_cosmidID")
+X<-read.table("../07_Gene_Sets/X_cosmidID")
+
+
+
+```
+
+
+```{r load additional gene features}
+
+merged<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Scripts/ALL_ID_PAIRS_uniq")
+merged<-merged[-c(20814,1884,5072),]
+colnames(merged)<-c("WBgene_ID","cosmid_ID")
+
+iso_to_noiso<-read.table("../07_Gene_Sets/iso_to_noiso")
+merged<-merge(merged,iso_to_noiso,by.x="cosmid_ID",by.y="V2")
+colnames(merged)[3]<-"cosmid_ID_iso"
+
+merged$epimutable_genes<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% epimutable_genes),"epimutable_genes"]<-TRUE
+
+merged$epimutable_genes_genbygen<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% epimutable_genes_genbygen),"epimutable_genes_genbygen"]<-TRUE
+
+merged$genes_with_heritable_22Gs<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% intergenes),"genes_with_heritable_22Gs"]<-TRUE
+
+merged$HV22Gs<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% HV22Gs),"HV22Gs"]<-TRUE
+
+#other genomic features
+merged$piRNA_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% piRNA_targets),"piRNA_targets"]<-TRUE
+
+merged$csr1_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% CSR1_targets),"csr1_targets"]<-TRUE
+
+merged$hrde1_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% HRDE1_targets),"hrde1_targets"]<-TRUE
+
+merged$wago1_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID_iso %in% WAGO1_targets),"wago1_targets"]<-TRUE
+
+merged$nrde3_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% nrde3_targets$NRDE.3_targe),"nrde3_targets"]<-TRUE
+
+merged$ergo1_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% ergo1_targets$X26G_methylated_targets),"ergo1_targets"]<-TRUE
+
+merged$alg34_targets<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% alg34_targets$V1),"alg34_targets"]<-TRUE
+
+
+merged$PATCs<-rep(FALSE,nrow(merged))
+PATCs$hiPATCdensity<-rep(FALSE,nrow(PATCs))
+PATCs[which(PATCs$PATC.density>17),"hiPATCdensity"]<-TRUE
+merged$PATCs[which(merged$cosmid_ID %in% PATCs[which(PATCs$hiPATCdensity==TRUE),"Transcript.name"])]<-TRUE
+
+merged$any5<-rep(NA,nrow(merged))
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$ANY5==TRUE),"seqID"]),"any5"]<-TRUE
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$ANY5==FALSE),"seqID"]),"any5"]<-FALSE
+
+merged$all5<-rep(NA,nrow(merged))
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$ALL5==TRUE),"seqID"]),"all5"]<-TRUE
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$ALL5==FALSE),"seqID"]),"all5"]<-FALSE
+
+merged$H3K9me2<-rep(NA,nrow(merged))
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$H3K9me2==TRUE),"seqID"]),"H3K9me2"]<-TRUE
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$H3K9me2==FALSE),"seqID"]),"H3K9me2"]<-FALSE
+             
+merged$H3K9me3<-rep(NA,nrow(merged))
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$H3K9me3==TRUE),"seqID"]),"H3K9me3"]<-TRUE
+merged[which(merged$cosmid_ID %in% JA_hetero[which(JA_hetero$H3K9me3==FALSE),"seqID"]),"H3K9me3"]<-FALSE         
+
+merged$active<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% active$V1),"active"]<-TRUE
+merged$border<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% border$V1),"border"]<-TRUE
+merged$regulated<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% regulated$V1),"regulated"]<-TRUE
+merged$X<-rep(FALSE,nrow(merged))
+merged[which(merged$cosmid_ID %in% X$V1),"X"]<-TRUE
+
+write.table(merged,file="../07_Gene_Sets/gene_features_cel.txt",col.names=TRUE,row.names = TRUE,quote=TRUE)
+
+nrow(merged)
+
+```
+
+
+```{r Fishers exact test and OR heatmap}
+
+FET_OR_p<-function(df,col1,col2){
+  a<-length(which(df[,col1]==TRUE & df[,col2]==TRUE))
+  b<-length(which(df[,col1]==TRUE & df[,col2]==FALSE))
+  c<-length(which(df[,col1]==FALSE & df[,col2]==TRUE))
+  d<-length(which(df[,col1]==FALSE & df[,col2]==FALSE))
+  
+  test<-fisher.test(cbind(c(a,b),c(c,d)))
+  return(list(cbind(c(a,b),c(c,d)),test$p.value,test$estimate))
+}
+
+cols<-colnames(merged)[4:21]
+ps<-matrix(data = 0,ncol = length(cols),nrow=length(cols))
+ors<-matrix(data = 0,ncol = length(cols),nrow=length(cols))
+colnames(ps)<-cols; rownames(ps)<-cols; colnames(ors)<-cols; rownames(ors)<-cols
+
+for (col1 in cols){
+  for (col2 in cols){
+    ps[col1,col2]<-FET_OR_p(merged,col1,col2)[[2]]
+    ors[col1,col2]<-FET_OR_p(merged,col1,col2)[[3]]
+  }
+}
+
+
+#gplots heatmap
+log2ORs<-log2(ors); log2ORs[which(log2ORs>9)]<-9 ; log2ORs[which(log2ORs<(-9))]<-(-9)
+heatmap.2(log2ORs,trace="none",col = colorRampPalette(c("blue","white","red")),main="all genes",key.title="log2(OR)")
+
+pdf("all_vs_all_heatmap_genbygen.pdf")
+heatmap.2(log2ORs,trace="none",col = colorRampPalette(c("blue","white","red")),main="all genes",key.title="log2(OR)")
+dev.off()
+
+
+```
+
+# Logistic regression model to predict HV22Gs
+
+```{r logistic regression model}
+
+ttg_stats<-data.frame(
+  mean_22Gs=apply(ttg_DEseqnorm_gens25_100,MARGIN = 1,FUN=mean))
+
+rnaseq<-read.table("../02_Normalised_counts/RNAseq_DEseqnorm.txt")
+rnaseq<-rnaseq[,25:47]
+rnaseq_stats<-data.frame(
+  mean_mRNA=apply(rnaseq,MARGIN = 1,FUN=mean))
+
+merged_mRNA_and_ttg_expression<-merge(merged,ttg_stats,by.x="cosmid_ID_iso",by.y=0)
+merged_mRNA_and_ttg_expression<-merge(merged_mRNA_and_ttg_expression,rnaseq_stats,by.x="cosmid_ID_iso",by.y=0,all.x=TRUE)
+
+
+ttg_10<-merged_mRNA_and_ttg_expression[which(merged_mRNA_and_ttg_expression$mean_22Gs>10),]
+ttg_10$log2_mRNA_abundance<-log2(ttg_10$mean_mRNA+1)
+
+mylogit<-glm(data=ttg_10,
+         formula= HV22Gs ~ piRNA_targets + hrde1_targets + wago1_targets + csr1_targets + active + regulated + all5 + any5 + H3K9me2 + H3K9me3 + PATCs + X + log2_mRNA_abundance,
+         family = binomial(link='logit'))
+
+summary(mylogit)
+
+logreg_results<-data.frame(coeff=mylogit$coefficients[-1],
+                           res=exp(mylogit$coefficients[-1]),
+                           log2_coeff=log2(exp(mylogit$coefficients))[-1],
+                           predictor=names(mylogit$coefficients)[-1],
+                           sig=c(0.82885,3.70e-05,2e-16,2e-16,3.98e-05,0.01190,
+                                 0.30333,0.49865,0.37727,0.36779,0.00119,0.05943,9.74e-08))
+logreg_results$predictor<-factor(logreg_results$predictor,levels = logreg_results$predictor[order(logreg_results$log2_coeff)])
+
+ggplot(logreg_results)+
+  geom_col(aes(x=log2_coeff,y=predictor))+
+  theme_classic()+
+  xlab("log2 odds ratio of being an HV22G")+
+  geom_text(aes(x=c(rep(-0.25,13)*c(1,1,1,-1,-1,1,1,1,-1,1,-1,1,-1)),y=predictor,label=sig))
+ggsave("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/06_Figure4/logit_model_coefficients_barplot.pdf")
+
+
+
+
+```
+
+
+# Analysis of the chromatin locations of genes showing changes in RNA-seq signal
+
+This code corresponds to Supplementary Figure 7g - genes showing changes at the mRNA level are intersected with chromatin domain annotations.
+
+```{r testing chr dependency of RNA-seq changes}
+
+wilcoxon_data<-read.table("../05_Figure3/RNAseq_tests_wilcoxon.txt")
+wilcoxon_data$ID<-rownames(wilcoxon_data)
+
+wilcoxon_data<-merge(wilcoxon_data,merged,by.x="ID",by.y="cosmid_ID_iso")
+
+nrow(wilcoxon_data[which(wilcoxon_data$H3K9me3==TRUE 
+                         ),])
+
+df<-data.frame(prop_genes=c(119/166,22/166,25/166,159/219,42/219,18/219),domtype=factor(c(rep("active",3),rep("regulated",3))),sig=factor(rep(c("NS","+","-"),2)))
+ggplot(df)+geom_col(aes(y=prop_genes,x=domtype,fill=sig))
+ggsave("fraction_of_pos_and_neg_corrgenes_by_chromatin.pdf")
+
+df<-data.frame(prop_genes=c(119,22,25,159,42,18),domtype=factor(c(rep("active",3),rep("regulated",3))),sig=factor(rep(c("NS","+","-"),2)))
+ggplot(df)+geom_col(aes(y=prop_genes,x=domtype,fill=sig))
+ggsave("number_of_pos_and_neg_corrgenes_by_chromatin.pdf")
+
+df<-data.frame(prop_genes=c(22/47,25/47,42/60,18/60),domtype=factor(c(rep("active",2),rep("regulated",2))),sig=factor(rep(c("+","-"),2)))
+ggplot(df)+geom_col(aes(y=prop_genes,x=domtype,fill=sig))+theme_classic()
+ggsave("fraction_of_pos_and_neg_corrgenes_by_chromatin_onlySIG.pdf",dpi="retina",width = 5)
+
+df<-data.frame(prop_genes=c(22,25,42,18),domtype=factor(c(rep("active",2),rep("regulated",2))),sig=factor(rep(c("+","-"),2)))
+ggplot(df)+geom_col(aes(y=prop_genes,x=domtype,fill=sig))+theme_classic()
+ggsave("number_of_pos_and_neg_corrgenes_by_chromatin_onlySIG.pdf",dpi="retina",width = 5)
+
+
+fisher.test(cbind(c(22,25),c(42,18)))
+#p=0.01804
+#OR=2.626388x more likely to be positively correlated in reg domains
+
+```
+
+
+# HV22Gs and evolutionary conservation
+
+Very clear - the more conserved, the less enriched in HV22Gs.
+
+```{r evo cons and HV22Gs}
+
+orthogroups<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/c_elegans_genes_and_ortholognumber_by_species.form.txt")
+
+cel_index<-8
+caeno_index<-c(6,7,9,10)
+rest_of_clade_V_index<-c(1,11,13,14,17,20,25)
+clades_IV_III_index<-c(2,3,4,5,12,15,16,18,21,26,28,30)
+clades_II_I_plectus_index<-c(19,22,23,24,27,29)
+
+classify_genes_by_conservation<-function(row){
+  if (sum(row[clades_II_I_plectus_index])>0) {return("conserved in clades I,II")}
+  else if (sum(row[clades_II_I_plectus_index])==0 & sum(row[clades_IV_III_index])>0){return("conserved in clade III,IV")}
+  else if (sum(row[clades_IV_III_index])==0 & sum(row[rest_of_clade_V_index])>0){return("conserved in clade V outside Caenorhabditis")}
+  else if (sum(row[rest_of_clade_V_index])==0 & sum(row[caeno_index])>0){return("conserved in Caenorhabditis")}
+  else if (sum(row[caeno_index])==0 & sum(row[cel_index])>0){return("C. elegans specific")}
+}
+
+conservation_data<-data.frame(cons=apply(orthogroups,MARGIN=1,FUN=classify_genes_by_conservation))
+conservation_data$cosmid_ID<-rownames(conservation_data)
+conservation_data<-conservation_data[which(rownames(conservation_data) %in% rownames(ttg_DEseqnorm)),]
+
+table(conservation_data$cons)
+
+cel_specific<-conservation_data[which(conservation_data$cons=="C. elegans specific"),"cosmid_ID"]
+caeno_specific<-conservation_data[which(conservation_data$cons=="conserved in Caenorhabditis"),"cosmid_ID"]
+cladeV_specific<-conservation_data[which(conservation_data$cons=="conserved in clade V outside Caenorhabditis"),"cosmid_ID"]
+clades_III_IV<-conservation_data[which(conservation_data$cons=="conserved in clade III,IV"),"cosmid_ID"]
+clades_I_II_plectus<-conservation_data[which(conservation_data$cons=="conserved in clades I,II"),"cosmid_ID"]
+
+conservation_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(cel_specific,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(caeno_specific,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(cladeV_specific,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(clades_III_IV,HV22Gs,HV22Gs_background),
+print_size_and_overlap_hyptest(clades_I_II_plectus,HV22Gs,HV22Gs_background)))
+
+
+
+rownames(conservation_overlaps)<-c("C. elegans-specific","Caenorhabditis-specific","clade V-specific","ortholog in clades III,IV","ortholog in clades I,II")
+colnames(conservation_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+conservation_overlaps$evol_distance<-rownames(conservation_overlaps)
+conservation_overlaps$evol_distance<-factor(conservation_overlaps$evol_distance,
+                                               levels=c("C. elegans-specific", "Caenorhabditis-specific", "clade V-specific", "ortholog in clades III,IV","ortholog in clades I,II"))
+
+plot_heatmap(conservation_overlaps,"genes with hypervariable\n22G-RNAs",
+             "../06_Figure4/geom_tile_OR_enrichment_evolutionary_conservation.pdf")
+
+
+ggplot(conservation_overlaps)+geom_point(aes(y=OR,x=1:5))+theme_classic()
+
+
+```
+
+```{r bootstrap analysis of enrichment of HV22Gs in evolutionary classes}
+
+data_summary <- function(x) {
+   m <- mean(x)
+   ymin <- m-1.96*sd(x)
+   ymax <- m+1.96*sd(x)
+   return(c(y=m,ymin=ymin,ymax=ymax))
+}
+
+bootstrap_and_plot_HV22G_enrichment_in_evolConsClasses<-function(nreps,percent_sampled){
+
+bootstrapped_overlaps_all<-c()
+
+for (i in seq(nreps)){
+
+rand_sample<-sample(HV22Gs,size = round(length(HV22Gs)*percent_sampled/100))
+
+bootstrapped_overlaps<-data.frame(rbind(
+print_size_and_overlap_hyptest(cel_specific,rand_sample,HV22Gs_background,print=FALSE),
+print_size_and_overlap_hyptest(caeno_specific,rand_sample,HV22Gs_background,print=FALSE),
+print_size_and_overlap_hyptest(cladeV_specific,rand_sample,HV22Gs_background,print=FALSE),
+print_size_and_overlap_hyptest(clades_III_IV,rand_sample,HV22Gs_background,print=FALSE),
+print_size_and_overlap_hyptest(clades_I_II_plectus,rand_sample,HV22Gs_background,print=FALSE)))
+colnames(bootstrapped_overlaps)<-c("problem_set_size","epimutations_set_size","overlap_size","hyper_p","OR")
+bootstrapped_overlaps$evol_cons<-factor(c("C. elegans-specific","Caenorhabditis-specific","clade V-specific","ortholog in clades III,IV","ortholog in clades I,II"),
+                                        levels=c("C. elegans-specific","Caenorhabditis-specific","clade V-specific","ortholog in clades III,IV","ortholog in clades I,II"))
+
+bootstrapped_overlaps_all<-rbind(bootstrapped_overlaps_all,bootstrapped_overlaps)
+
+}
+
+print(ggplot(bootstrapped_overlaps_all)+geom_boxplot(aes(x=evol_cons,y=OR))+
+  ggtitle(paste(paste(paste(as.character(percent_sampled),"% bootstrapping",sep=""),", n=",sep=""),as.character(nreps),sep=""))+
+  xlab("evolutionary conservation")+
+  ylab("OR of enrichment in HV22Gs")+
+  theme_classic())
+ggsave(paste(paste(paste(paste(paste("../06_Figure4/ORs_HV22Gs_evolcons_bootstrap_analysis_",as.character(percent_sampled),sep=""),"percent_n"),sep=""),as.character(nreps),sep=""),"pdf",sep="."))
+
+print(ggplot(bootstrapped_overlaps_all,aes(x=evol_cons,y=OR))+geom_violin(bw=0.05,trim=FALSE)+
+  ggtitle(paste(paste(paste(as.character(percent_sampled),"% bootstrapping",sep=""),", n=",sep=""),as.character(nreps),sep=""))+
+  xlab("evolutionary conservation")+
+  ylab("OR of enrichment in HV22Gs")+
+  stat_summary(fun.data=data_summary)+
+  theme_classic())
+ggsave(paste(paste(paste(paste(paste("../06_Figure4/ORs_HV22Gs_evolcons_bootstrap_analysis_",as.character(percent_sampled),sep=""),"percent_n"),sep=""),as.character(nreps),sep=""),"_violin.pdf",sep=""))
+
+
+print(ggplot(bootstrapped_overlaps_all)+geom_boxplot(aes(x=evol_cons,y=log2(OR)))+
+  ggtitle(paste(paste(paste(as.character(percent_sampled),"% bootstrapping",sep=""),", n=",sep=""),as.character(nreps),sep=""))+
+  xlab("evolutionary conservation")+
+  ylab("log2(OR) of enrichment in HV22Gs")+
+  theme_classic())
+ggsave(paste(paste(paste(paste(paste("../06_Figure4/log2ORs_HV22Gs_evolcons_bootstrap_analysis_",as.character(percent_sampled),sep=""),"percent_n"),sep=""),as.character(nreps),sep=""),"pdf",sep="."))
+
+print(ggplot(bootstrapped_overlaps_all,aes(x=evol_cons,y=log2(OR)))+geom_violin(bw=0.025,trim=FALSE)+
+  ggtitle(paste(paste(paste(as.character(percent_sampled),"% bootstrapping",sep=""),", n=",sep=""),as.character(nreps),sep=""))+
+  xlab("evolutionary conservation")+
+  ylab("log2(OR) of enrichment in HV22Gs")+
+  stat_summary(fun.data=data_summary)+
+  theme_classic())
+ggsave(paste(paste(paste(paste(paste("../06_Figure4/log2ORs_HV22Gs_evolcons_bootstrap_analysis_",as.character(percent_sampled),sep=""),"percent_n"),sep=""),as.character(nreps),sep=""),"_violin.pdf",sep=""))
+
+return(bootstrapped_overlaps_all)
+
+}
+
+
+
+bootstrap_and_overlap_p80_n10000<-bootstrap_and_plot_HV22G_enrichment_in_evolConsClasses(10000,80)
+bootstrap_and_overlap_p90_n10000<-bootstrap_and_plot_HV22G_enrichment_in_evolConsClasses(10000,90)
+bootstrap_and_overlap_p70_n10000<-bootstrap_and_plot_HV22G_enrichment_in_evolConsClasses(10000,70)
+
+
+
+
+  
+
+
+```
+
+
+# Overlap with other gene sets
+
+No overlap with set of genes with changes in 22G-RNAs in the germline.
+
+```{r other gene sets}
+
+#posner 2019
+posner2019_germSTGs<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/posner_et_al_2019_germlineSTGs.txt")
+gene_id_mappings<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/WBgene_publicName_cosmidID.csv",sep=",",header=TRUE)
+
+posner2019_germSTGs_cosmidID<-union(gene_id_mappings[which(as.character(gene_id_mappings$Public.Name) %in% as.character(posner2019_germSTGs$V1)),"Sequence.Name"], posner2019_germSTGs$V1[-which(as.character(posner2019_germSTGs$V1) %in% as.character(gene_id_mappings$Public.Name))])
+
+posner2019_germSTGs_cosmidID_iso<-as.character(iso_to_noiso[which(posner2019_germSTGs_cosmidID %in% as.character(iso_to_noiso$V2)),"V1"])
+
+print_size_and_overlap_hyptest(posner2019_germSTGs_cosmidID_iso,HV22Gs,HV22Gs_background)
+print_size_and_overlap_hyptest(posner2019_germSTGs_cosmidID_iso,epimutable_genes,background_epimutable_genes)
+
+
+#histone genes
+his_genes_noiso<-read.table("../07_Gene_Sets/histone_genes_noiso"); his_genes_noiso<-his_genes_noiso$V1
+his_genes_iso<-as.character(iso_to_noiso[which(his_genes_noiso %in% as.character(iso_to_noiso$V2)),"V1"])
+
+print_size_and_overlap_hyptest(his_genes_iso,HV22Gs,HV22Gs_background)
+print_size_and_overlap_hyptest(his_genes_iso,epimutable_genes,background_epimutable_genes)
+
+
+```
+
+
+# Overlap clustered epimutations
+
+```{r clustered epimutations}
+
+clustered_epimutations_correlated<-c("B0511.4","B0511.3","C16C8.20","C16C8.21","Y53F4B.16","Y53F4B.17","T12B5.2","T12B5.1","D2024.1 ","D2024.18","C06E4.5","C07G1.6","C07G1.7","C27D8.2","C27D8.1","T23F6.1","T05C3.6a","T05C3.2","ZC190.7","ZC190.8","F47B8.6","F47B8.7","F47B8.8","Y17D7B.6","Y17D7B.8","F55C9.7","F55C9.8","F55C9.13","F55C9.14")
+
+clustered_epimutations_all<-c("T23G11.11", "T23G11.1",  "B0511.4",   "B0511.3",   "B0511.11",  "K11D2.1",   "K11D2.2",   "F32A7.6",   "F32A7.7",   "C16C8.20",  "C16C8.21",  "C30G12.2",  "C30G12.6", "Y53F4B.45", "Y53F4B.16", "Y53F4B.17", "T12B5.2",   "T12B5.1",   "D2024.1",   "D2024.18",  "C06E4.5",   "F42G8.5",   "F42G8.4",   "C07G1.6",   "C07G1.7",   "C27D8.3",  "C27D8.2",   "C27D8.1",   "T23F6.1",   "Y62E10A.3", "Y62E10A.4", "T05C3.6",   "T05C3.2",  "W01A11.6",  "W01A11.7",  "ZC190.7",   "ZC190.8",   "F47B8.6",   "F47B8.8",  "F47B8.7",   "Y17D7B.6",  "Y17D7B.8",  "F55C9.7",   "F55C9.14",  "F55C9.8",   "F55C9.13",  "Y43F8B.9",  "Y43F8B.22", "F54F7.6",   "F54F7.7",   "C49F5.1",   "VW06B3R.1")
+
+
+print("active domains:")
+active_all<-calculate_odds_ratio(merged[which(merged$active==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+active_clustered<-calculate_odds_ratio(merged[which(merged$active==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("regulated domains:")
+regulated_all<-calculate_odds_ratio(merged[which(merged$regulated==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+regulated_clustered<-calculate_odds_ratio(merged[which(merged$regulated==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("H3K9me2:")
+H3K9me2_all<-calculate_odds_ratio(merged[which(merged$H3K9me2==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+H3K9me2_clustered<-calculate_odds_ratio(merged[which(merged$H3K9me2==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("H3K9me3:")
+H3K9me3_all<-calculate_odds_ratio(merged[which(merged$H3K9me3==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+H3K9me3_clustered<-calculate_odds_ratio(merged[which(merged$H3K9me3==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("piRNA targets:")
+piRNAtargets_all<-calculate_odds_ratio(merged[which(merged$piRNA_targets==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+piRNAtargets_clustered<-calculate_odds_ratio(merged[which(merged$piRNA_targets==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("HRDE-1 targets:")
+hrde1_all<-calculate_odds_ratio(merged[which(merged$hrde1_targets==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+hrde1_clustered<-calculate_odds_ratio(merged[which(merged$hrde1_targets==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("WAGO-1 targets:")
+wago1_all<-calculate_odds_ratio(merged[which(merged$wago1_targets==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+wago1_clustered<-calculate_odds_ratio(merged[which(merged$wago1_targets==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+print("CSR-1:")
+csr1_all<-calculate_odds_ratio(merged[which(merged$csr1_targets==TRUE),"cosmid_ID"],epimutable_genes,background_epimutable_genes)
+csr1_clustered<-calculate_odds_ratio(merged[which(merged$csr1_targets==TRUE),"cosmid_ID"],clustered_epimutations_correlated,background_epimutable_genes)
+
+
+all<-c(active_all,regulated_all,H3K9me2_all,H3K9me3_all,piRNAtargets_all,hrde1_all,wago1_all,csr1_all)
+clustered<-c(active_clustered,regulated_clustered,H3K9me2_clustered,H3K9me3_clustered,piRNAtargets_clustered,hrde1_clustered,wago1_clustered,2**(-5))
+
+pdf("epimutation_clustering/all_vs_clustered_foldenrichments.pdf")
+par(mar=c(4,5,1,1))
+plot(all,clustered,ylim=c(-1,14),xlim=c(-0.25,3.5),ylab="fold enrichment\nclustered epimutations",xlab="fold enrichment\nall epimutations")
+text(all,clustered+c(1,1,1,1,-1,-1,-1,1),labels=c("active","regulated","H3K9me2","H3K9me3","piRNAs","HRDE-1","WAGO-1","CSR-1"))
+abline(a=0,b=1,col="red",lty="dashed")
+dev.off()
+
+#get subsets of 29 genes to look at the variability of enrichment "under the null"
+null_enrichment_reg<-rep(0,100000)
+null_enrichment_H3K9me3<-rep(0,100000)
+for (i in seq(100000)){
+  subsample<-sample(epimutable_genes,size = 29,replace=FALSE)
+  null_enrichment_reg[i]<-calculate_odds_ratio(merged[which(merged$regulated==TRUE),"cosmid_ID"],subsample,background_epimutable_genes)
+  null_enrichment_H3K9me3[i]<-calculate_odds_ratio(merged[which(merged$H3K9me3==TRUE),"cosmid_ID"],subsample,background_epimutable_genes)
+  }
+
+null_enr<-data.frame(regulated=null_enrichment_reg,H3K9me3=null_enrichment_H3K9me3)
+ggplot(null_enr)+geom_histogram(aes(x=regulated),bins=30)+theme_classic()+xlab("fold enrichment in H3K27me3 regulated domains")+
+  geom_vline(xintercept = regulated_clustered,col="red",linetype="dashed")
+ggsave("epimutation_clustering/RegulatedDomains_clustered_epimutations_vs_allepis_as_null.pdf")
+(length(which(null_enrichment_reg>11.90018))+1)/100000
+
+
+ggplot(null_enr)+geom_histogram(aes(x=H3K9me3),bins=30)+theme_classic()+xlab("fold enrichment in H3K9me3 domains")+
+  geom_vline(xintercept = H3K9me3_clustered,col="red",linetype="dashed")
+ggsave("epimutation_clustering/H3K9me3Domains_clustered_epimutations_vs_allepis_as_null.pdf")
+(length(which(null_enrichment_H3K9me3>4.310932))+1)/100000
+
+
+
+```
+
+
+
+
+
+
+
+

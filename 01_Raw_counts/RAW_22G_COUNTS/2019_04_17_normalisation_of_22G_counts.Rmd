@@ -1,0 +1,162 @@
+---
+title: "2019_04_17_normalisation_of_raw_counts"
+author: "Toni Beltran"
+date: "17/04/2019"
+output: html_document
+---
+
+```{r load data and merge tables}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/01_Raw_counts/RAW_22G_COUNTS/")
+
+ttg_A<-read.table("22G_RAW_COUNTS_lineageA.txt")
+ttg_B<-read.table("22G_RAW_COUNTS_lineageB.txt")
+ttg_gens25_100<-read.table("22G_RAW_COUNTS_GENS25100.txt")
+ttg_gens25_100<-ttg_gens25_100[,1:49]
+
+all_raw_counts<-merge(ttg_A,ttg_B,by=0,all=TRUE)
+all_raw_counts[is.na(all_raw_counts)]<-0
+rownames(all_raw_counts)<-all_raw_counts$Row.names; all_raw_counts$Row.names<-NULL
+
+all_raw_counts<-merge(all_raw_counts,ttg_gens25_100,by=0, all=TRUE)
+all_raw_counts[is.na(all_raw_counts)]<-0
+rownames(all_raw_counts)<-all_raw_counts$Row.names; all_raw_counts$Row.names<-NULL
+
+```
+
+
+```{r DEseq normalisation}
+
+library(DESeq)
+
+DEseqnorm<-function(df,condition){
+  cds<-newCountDataSet(df,condition)
+  cds<-estimateSizeFactors(cds)
+  print(sizeFactors(cds))
+  plot(sizeFactors(cds),colSums(df))
+  print(cor(sizeFactors(cds),colSums(df)))
+  return(counts(cds,normalized=TRUE))
+}
+
+all_counts_DEseqnorm<-DEseqnorm(all_raw_counts,condition=colnames(all_raw_counts))
+
+
+write.table(all_counts_DEseqnorm,file="../../02_Normalised_counts/22G_DEseqnorm_counts.txt",row.names = TRUE,col.names = TRUE,
+            quote=FALSE)
+
+
+#average replicates of gens25-100
+
+average_reps<-function(colnames_vector){
+  nreps<-length(colnames_vector)
+  sum<-0
+  for (i in seq(length(colnames_vector))){
+    sum<-sum+all_counts_DEseqnorm[,colnames_vector[i]]
+  }
+  return(sum/nreps)
+}
+
+averaged_gens_25_100_deseqnorm<-data.frame(
+  A25<-average_reps(c("A25_1","A25_2")),
+  B25<-average_reps(c("B25_1","B25_2")),
+  C25<-average_reps(c("C25_1","C25_2","C25_3")),
+  D25<-average_reps(c("D25_1","D25_2")),
+  F25<-average_reps(c("F25_1","F25_2")),
+  G25<-average_reps(c("G25_1","G25_2")),
+  H25<-average_reps(c("H25_1","H25_2")),
+  I25<-average_reps(c("I25_1","I25_2")),
+  J25<-average_reps(c("J25_1","J25_2")),
+  K25<-average_reps(c("K25_1","K25_2")),
+  L25<-average_reps(c("L25_1","L25_2")),
+  PMA<-average_reps(c("PMA1","PMA2","PMA3")),
+  A100<-average_reps(c("A100_1","A100_2")),
+  B100<-average_reps(c("B100_1","B100_2")),
+  C100<-average_reps(c("C100_1","C100_2")),
+  D100<-average_reps(c("D100_1","D100_2")),
+  F100<-average_reps(c("F100_1","F100_2")),
+  G100<-average_reps(c("G100_1","G100_2")),
+  H100<-average_reps(c("H100_1","H100_2")),
+  I100<-average_reps(c("I100_1","I100_2")),
+  J100<-average_reps(c("J100_1","J100_2")),
+  K100<-average_reps(c("K100_1","K100_2")),
+  L100<-average_reps(c("L100_1","L100_2")))
+
+colnames(averaged_gens_25_100_deseqnorm)<-c("A25","B25","C25","D25","F25","G25","H25","I25","J25","K25","L25",
+                                            "PMA","A100","B100","C100","D100","F100","G100","H100","I100","J100","K100","L100")
+
+#re-merge with genbygen data
+
+all_counts_DEseqnorm_averaged<-merge(all_counts_DEseqnorm[,1:24],averaged_gens_25_100_deseqnorm,by=0)
+rownames(all_counts_DEseqnorm_averaged)<-all_counts_DEseqnorm_averaged$Row.names
+all_counts_DEseqnorm_averaged$Row.names<-NULL
+
+write.table(all_counts_DEseqnorm_averaged,file="../../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt",row.names = TRUE,col.names = TRUE,
+            quote=FALSE)
+
+
+```
+
+
+
+```{r RPM normalisation}
+
+
+RPMnorm<-function(df){
+  return(prop.table(df,margin = 2)*1e6)
+}
+
+all_counts_RPMnorm<-RPMnorm(as.matrix(all_raw_counts))
+colSums(all_counts_RPMnorm)
+write.table(all_counts_RPMnorm,file="../../02_Normalised_counts/22G_RPMnorm_counts.txt",row.names = TRUE,col.names = TRUE,
+            quote=FALSE)
+
+#average replicates of gens25-100
+
+average_reps<-function(colnames_vector){
+  nreps<-length(colnames_vector)
+  sum<-0
+  for (i in seq(length(colnames_vector))){
+    sum<-sum+all_counts_RPMnorm[,colnames_vector[i]]
+  }
+  return(sum/nreps)
+}
+
+averaged_gens_25_100_rpmnorm<-data.frame(
+  A25<-average_reps(c("A25_1","A25_2")),
+  B25<-average_reps(c("B25_1","B25_2")),
+  C25<-average_reps(c("C25_1","C25_2","C25_3")),
+  D25<-average_reps(c("D25_1","D25_2")),
+  F25<-average_reps(c("F25_1","F25_2")),
+  G25<-average_reps(c("G25_1","G25_2")),
+  H25<-average_reps(c("H25_1","H25_2")),
+  I25<-average_reps(c("I25_1","I25_2")),
+  J25<-average_reps(c("J25_1","J25_2")),
+  K25<-average_reps(c("K25_1","K25_2")),
+  L25<-average_reps(c("L25_1","L25_2")),
+  PMA<-average_reps(c("PMA1","PMA2","PMA3")),
+  A100<-average_reps(c("A100_1","A100_2")),
+  B100<-average_reps(c("B100_1","B100_2")),
+  C100<-average_reps(c("C100_1","C100_2")),
+  D100<-average_reps(c("D100_1","D100_2")),
+  F100<-average_reps(c("F100_1","F100_2")),
+  G100<-average_reps(c("G100_1","G100_2")),
+  H100<-average_reps(c("H100_1","H100_2")),
+  I100<-average_reps(c("I100_1","I100_2")),
+  J100<-average_reps(c("J100_1","J100_2")),
+  K100<-average_reps(c("K100_1","K100_2")),
+  L100<-average_reps(c("L100_1","L100_2")))
+
+colnames(averaged_gens_25_100_rpmnorm)<-c("A25","B25","C25","D25","F25","G25","H25","I25","J25","K25","L25",
+                                            "PMA","A100","B100","C100","D100","F100","G100","H100","I100","J100","K100","L100")
+
+#re-merge with genbygen data
+
+all_counts_RPMnorm_averaged<-merge(all_counts_RPMnorm[,1:24],averaged_gens_25_100_rpmnorm,by=0)
+rownames(all_counts_RPMnorm_averaged)<-all_counts_RPMnorm_averaged$Row.names
+all_counts_RPMnorm_averaged$Row.names<-NULL
+
+write.table(all_counts_RPMnorm_averaged,file="../../02_Normalised_counts/22G_RPMnorm_counts_averaged.txt",row.names = TRUE,col.names = TRUE,
+            quote=FALSE)
+
+
+```

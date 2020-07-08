@@ -1,0 +1,124 @@
+---
+title: "2019_04_26_plot_examples_epimutations.Rmd"
+author: "Toni Beltran"
+date: "26/04/2019"
+output: html_document
+---
+
+# Example traces of epimutations in lineages A and B.
+
+```{r load data}
+
+library(ggplot2)
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/05_Figure3/example_traces_epimuts/")
+ttg_DEseqnorm<-read.table("../../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+epimut_duration_data_A<-read.table("../../05_Figure3/epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4_FCdata_noiso.txt",header=TRUE)
+epimut_duration_data_B<-read.table("../../05_Figure3/epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4_FCdata_noiso.txt",header=TRUE)
+
+epimut_duration_data_both<-rbind(epimut_duration_data_A,epimut_duration_data_B)
+
+epimut_examples<-c("B0454.9","C04F12.5","F31C3.11","F40D4.17","F42G8.4b.1","F49E8.6","F54D10.3","K03H6.5b","K08A2.4","M88.7","R07E5.4","T26C11.5","W02D7.5","Y102A5C.6","Y39G10AR.17","Y47H10A.1","Y48E1B.11","Y50D7A.7","Y75B12B.4","ZK1010.5")
+
+
+for (gene in epimut_examples){
+  df<-data.frame(ttg_counts=as.numeric(ttg_DEseqnorm[gene,1:24]),
+                 gen=rep(c(1:12),2),
+                 lin=c(rep("A",12),rep("B",12)))
+  print(
+    ggplot(df,aes(x=gen,y=ttg_counts,group=lin))+
+          geom_line(aes(color=lin))+
+          geom_point(aes(color=lin))+
+          theme_classic()+
+          ggtitle(gene)+xlab("generation")+ylab("normalised 22G counts")
+  )
+  ggsave(paste(gene,"epimut_trace.pdf",sep=""))
+
+}
+
+
+```
+
+
+# Example trace of an epimutation at the 22G-RNA and the mRNA level
+
+```{r rnaseq examples}
+
+library(ggplot2)
+library(gtable)
+library(grid)
+
+
+RNAseq_DEseqnorm<-read.table("../02_Normalised_counts/RNAseq_DEseqnorm.txt")
+
+
+pdf("C05E11.1_22Gs_vs_rnaseq.pdf",width = 10,height = 5)
+
+grid.newpage()
+
+gene<-c("C05E11.1")
+df<-data.frame(ttg_counts=as.numeric(ttg_DEseqnorm[gene,13:24]),
+                 gen=rep(c(1:12)),
+                 rnaseq_counts=as.numeric(RNAseq_DEseqnorm[gene,13:24]))
+
+
+# two plots
+p1 <- ggplot(df, aes(x=gen, y=ttg_counts)) + geom_line(colour = "blue") + geom_point(colour = "black",size=2) + theme_classic()
+p2 <- ggplot(df, aes(x=gen, y=rnaseq_counts)) + geom_line(colour = "red") + geom_point(colour = "black",size=2) + theme_classic() %+replace%
+    theme(panel.background = element_rect(fill = NA))
+
+# extract gtable
+g1 <- ggplot_gtable(ggplot_build(p1))
+g2 <- ggplot_gtable(ggplot_build(p2))
+
+# overlap the panel of 2nd plot on that of 1st plot
+pp <- c(subset(g1$layout, name == "panel", se = t:r))
+g <- gtable_add_grob(g1, g2$grobs[[which(g2$layout$name == "panel")]], pp$t, 
+    pp$l, pp$b, pp$l)
+
+# axis tweaks
+ia <- which(g2$layout$name == "axis-l")
+ga <- g2$grobs[[ia]]
+ax <- ga$children[[2]]
+ax$widths <- rev(ax$widths)
+ax$grobs <- rev(ax$grobs)
+ax$grobs[[1]]$x <- ax$grobs[[1]]$x - unit(1, "npc") + unit(0.15, "cm")
+g <- gtable_add_cols(g, g2$widths[g2$layout[ia, ]$l], length(g$widths) - 1)
+g <- gtable_add_grob(g, ax, pp$t, length(g$widths) - 1, pp$b)
+
+# draw it
+grid.draw(g)
+dev.off()
+
+
+
+```
+
+# Example traces of genes with reduced intergenerational variance
+
+```{r inter vs overall examples}
+
+inter_examples<-c("B0391.10","T28D6.4","Y20F4.4a","C37A2.7","F39C12.1","B0348.5a","C47G2.6","F19B6.3","C03D6.1")
+
+
+for (gene in inter_examples){
+  df<-data.frame(ttg_counts=as.numeric(ttg_DEseqnorm[gene,1:24]),
+                 gen=rep(c(1:12),2),
+                 lin=c(rep("A",12),rep("B",12)))
+  print(
+    ggplot(df,aes(x=gen,y=ttg_counts,group=lin))+
+          geom_line(aes(color=lin))+
+          geom_point(aes(color=lin))+
+          theme_classic()+
+          ggtitle(gene)+xlab("generation")+ylab("normalised 22G counts")
+  )
+  ggsave(paste(paste("../06_Figure4/inter_trace",gene,sep="_"),"pdf",sep="."))
+
+}
+
+
+
+```
+
+
+

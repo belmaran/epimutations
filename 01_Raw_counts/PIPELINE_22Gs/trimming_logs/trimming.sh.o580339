@@ -1,0 +1,111 @@
+ 
+  ***** Continue ONLY if you are an authorised user, otherwise EXIT now *****
+
+Communications, including personal communications, made on or through  Imperial
+College's computing and telecommunications systems may be monitored or recorded
+to  secure effective  system operation  and for other lawful purposes.  See the 
+Information Systems Security Codes of Practice for more information.
+
+ax4.hpc.ic.ac.uk
+
+Imperial College London HPC Service - SGI Altix UV2000 System
+-----------------------------------
+
+Direct access to this system is not permitted. 
+Please disconnect now and use qsub via login.ax4.hpc.ic.ac.uk .
+
+ 
+Imperial College London HPC Service
+-----------------------------------
+Job trimming.sh, jobid 580339.ax4-login, username ab6415 - started execution at 17:56:50 Sun 27/01/19 on system ax4
+ 
+This is cutadapt 1.10 with Python 2.7.12
+Command line parameters: -a TGGAATTCTCGGGTGCCAAGGAA -m 15 -o /rds/general/user/ab6415/projects/lms-sarkies-analysis/live/Toni/epiMALs_JAN2019/gen_by_gen_experiment/small_rna_seq/fastq/PMA_A13_S12_L001_R1_001.fastq.trimmed /rds/general/user/ab6415/projects/lms-sarkies-analysis/live/Toni/epiMALs_JAN2019/gen_by_gen_experiment/small_rna_seq/fastq/PMA_A13_S12_L001_R1_001.fastq
+Trimming 1 adapter with at most 10.0% errors in single-end mode ...
+Finished in 143.05 s (20 us/read; 3.00 M reads/minute).
+
+=== Summary ===
+
+Total reads processed:               7,140,690
+Reads with adapters:                 7,079,695 (99.1%)
+Reads that were too short:              37,445 (0.5%)
+Reads written (passing filters):     7,103,245 (99.5%)
+
+Total basepairs processed:   357,034,500 bp
+Total written (filtered):    157,230,906 bp (44.0%)
+
+=== Adapter 1 ===
+
+Sequence: TGGAATTCTCGGGTGCCAAGGAA; Type: regular 3'; Length: 23; Trimmed: 7079695 times.
+
+No. of allowed errors:
+0-9 bp: 0; 10-19 bp: 1; 20-23 bp: 2
+
+Bases preceding removed adapters:
+  A: 15.6%
+  C: 26.7%
+  G: 9.5%
+  T: 48.2%
+  none/other: 0.0%
+
+Overview of removed sequences
+length	count	expect	max.err	error counts
+3	260	111573.3	0	260
+4	233	27893.3	0	233
+5	60	6973.3	0	60
+6	130	1743.3	0	130
+7	103	435.8	0	103
+8	94	109.0	0	94
+9	56	27.2	0	51 5
+10	51	6.8	1	45 6
+11	120	1.7	1	115 5
+12	119	0.4	1	118 1
+13	697	0.1	1	669 28
+14	718	0.0	1	692 26
+15	971	0.0	1	936 35
+16	1322	0.0	1	1262 60
+17	2370	0.0	1	2243 127
+18	3534	0.0	1	3332 198 4
+19	4008	0.0	1	3764 240 4
+20	5941	0.0	2	5594 313 34
+21	6281	0.0	2	5863 379 39
+22	4903	0.0	2	4553 333 17
+23	11555	0.0	2	10899 621 35
+24	30274	0.0	2	28484 1674 116
+25	92391	0.0	2	84925 6945 521
+26	312153	0.0	2	288476 22107 1570
+27	1188760	0.0	2	1121154 63867 3739
+28	3417321	0.0	2	3225861 181198 10262
+29	1359976	0.0	2	1278802 76638 4536
+30	315473	0.0	2	293020 20971 1482
+31	91379	0.0	2	84571 6319 489
+32	52550	0.0	2	49140 3145 265
+33	48392	0.0	2	45221 2992 179
+34	36460	0.0	2	33571 2700 189
+35	53595	0.0	2	49388 3962 245
+36	21884	0.0	2	20247 1540 97
+37	4925	0.0	2	4547 346 32
+38	2298	0.0	2	2059 221 18
+39	1852	0.0	2	1676 156 20
+40	1132	0.0	2	1022 97 13
+41	924	0.0	2	827 89 8
+42	598	0.0	2	542 49 7
+43	535	0.0	2	485 41 9
+44	424	0.0	2	381 37 6
+45	199	0.0	2	177 18 4
+46	45	0.0	2	39 5 1
+47	30	0.0	2	27 2 1
+48	49	0.0	2	46 2 1
+49	69	0.0	2	55 11 3
+50	2481	0.0	2	2226 177 78
+
+
+============================================
+
+        Job resource usage summary 
+
+                 Memory (GB)    NCPUs
+ Requested  :         0             1
+ Used       :         0 (peak)   0.92 (ave)
+
+============================================

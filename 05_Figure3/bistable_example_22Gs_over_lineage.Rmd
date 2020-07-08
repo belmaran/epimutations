@@ -1,0 +1,38 @@
+---
+title: "bistable_22G_example_over_lineage.Rmd"
+author: "Toni Beltran"
+date: "04/08/2019"
+output: html_document
+---
+
+```{r read data}
+
+normcounts<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+normcounts<-normcounts[,1:24]
+
+epimutable_genes_genbygen<-read.table("epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4_FCdata.txt",header=TRUE)
+
+for (gene in unique(epimutable_genes_genbygen$ID)){
+  plot(1:24,as.numeric(normcounts[gene,]),main=gene)
+}
+
+
+```
+
+```{r ggplot for an example bistable gene}
+
+ggplot()+geom_point(aes(y=as.numeric(normcounts["F29C12.1a",13:24]),x=1:12))+
+  theme_classic()+
+  ylab("22G normalised counts")+
+  xlab("generation")
+ggsave("example_bistable_epimutation_F29C12.1a.pdf")
+
+
+getwd()
+
+
+```
+
+
+
+

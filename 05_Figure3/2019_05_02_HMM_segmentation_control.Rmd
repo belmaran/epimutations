@@ -1,0 +1,280 @@
+---
+title: '2019_05_02_segmentation_controls'
+author: "Toni Beltran"
+date: "02/05/2019"
+output: html_document
+---
+
+Segmentation analysis through HMM fitting and retrieval of the fitted chain of hidden states:
+ - the time course data (two runs of 12 generations) is used to fit a 2-state HMM - initialized with the means and standard deviations of the     clusters obtained by k-means analysis
+ - the internal states are recovered and analysed in the same way as in the k-means segmentation analysis
+This analysis results in lower rates of epimutation as single generation changes are sometimes considered not a change - since the distribution of 22G counts for each hidden state is also a free parameter.
+
+
+```{r load data}
+
+
+library(gplots)
+library(RColorBrewer)
+library(ggplot2)
+library(depmixS4)
+library(DESeq2)
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/05_Figure3/")
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+ttg_MAplot_data<-read.table("../03_Figure1/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+
+summary_stats_A<-data.frame(mean=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = min))
+
+summary_stats_B<-data.frame(mean=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = min))
+
+summary_stats_AB<-data.frame(mean=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=mean),
+                             min=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=min))
+
+```
+
+```{r DEseq}
+#DEseq to remove batch variation (early vs late, plus B1-B4 samples)
+
+library(DESeq2)
+ttg_A_rawcounts<-read.table("../01_Raw_counts/RAW_22G_COUNTS/22G_RAW_COUNTS_lineageA.txt")
+ttg_B_rawcounts<-read.table("../01_Raw_counts/RAW_22G_COUNTS/22G_RAW_COUNTS_lineageB.txt")
+ttg_AB_rawcounts<-merge(ttg_A_rawcounts,ttg_B_rawcounts,by=0); rownames(ttg_AB_rawcounts)<-ttg_AB_rawcounts$Row.names; ttg_AB_rawcounts$Row.names<-NULL
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(rep(c(rep(1,7),rep(2,5)),2))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+ggplot(as.data.frame(res))+geom_histogram(aes(x=pvalue))
+ggplot(as.data.frame(res))+geom_histogram(aes(x=padj))
+
+removegenes_lastfive<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(c(rep(1,12),2,rep(1,3),2,rep(1,7)))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+ggplot(as.data.frame(res))+geom_histogram(aes(x=pvalue))
+ggplot(as.data.frame(res))+geom_histogram(aes(x=padj))
+
+removegenes_b1_b5<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+removegenes<-union(removegenes_lastfive,removegenes_b1_b5)
+length(removegenes)
+
+
+
+epimutable_genes_genbygen<-ttg_MAplot_data$ID[-which(ttg_MAplot_data$ID %in% removegenes)]
+length(unique(epimutable_genes_genbygen))
+
+ttg_DEseqnorm_epimutable_genes<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% epimutable_genes_genbygen),]
+nrow(ttg_DEseqnorm_epimutable_genes)
+
+```
+
+```{r HMM segmentation}
+
+#initialise HMM with prior information
+
+kmeans_row<-function(vector){  
+  kmc<-kmeans(x = as.numeric(vector),centers=2)
+  high<-kmc$cluster[which.is.max(vector)]
+  if (high==2){return(kmc$cluster)
+  }else{return(abs(kmc$cluster-3))}
+}
+
+hmm_fit_and_estimate_underlying_states_2stHMM_kmeansinit<-function(trace){
+  
+  kmeans_seg<-kmeans_row(trace)
+  mean_st1<-mean(trace[which(kmeans_seg==1)])
+  sd_st1<-0.1*mean_st1
+  mean_st2<-mean(trace[which(kmeans_seg==2)])
+  sd_st2<-0.1*mean_st2
+  
+  respstart<-c(c(mean_st1,sd_st1),c(mean_st2,sd_st2))
+  
+  trace<-trace[1:24]
+  dat<-data.frame(trace=trace)
+  mod <- depmix(trace ~ 1, family = gaussian(), nstates = 2, data = dat, respstart = respstart, ntimes = c(12,12))
+  fm2 <- tryCatch(fit(mod, verbose = FALSE), error=function(e) 1)
+
+ #calculate trajectory of hidden states
+  final_model_states<-tryCatch(posterior(fm2), error=function(e) 1)
+  
+  high<-tryCatch(final_model_states$state[which.is.max(trace)], error=function(e) 0)
+  if (high==2){return(final_model_states$state)
+  }else if (high==1){return(abs(final_model_states$state-3))}
+  else{return(rep(0,24))}
+
+}
+
+
+hmm_segmentation<-matrix(0,nrow=nrow(ttg_DEseqnorm_epimutable_genes),ncol = 24)
+rownames(hmm_segmentation)<-rownames(ttg_DEseqnorm_epimutable_genes)
+for (gene in rownames(ttg_DEseqnorm_epimutable_genes)){
+      hmm_segmentation[gene,]<-hmm_fit_and_estimate_underlying_states_2stHMM_kmeansinit(as.numeric(ttg_DEseqnorm_epimutable_genes[gene,]))
+}
+
+hmm_segmentation<-hmm_segmentation[-which(apply(hmm_segmentation,MARGIN=1,FUN=sum)==0),]
+colnames(hmm_segmentation)<-colnames(ttg_DEseqnorm_epimutable_genes)[1:24]
+
+
+epimuts_from_hmm_trace<-function(vect,gene){
+  trace<-rle(vect)
+  epimut_number<-length(trace$lengths)
+  completeness<-rep(1,epimut_number); completeness[1]<-0; completeness[epimut_number]<-0; 
+  return(data.frame(ID=rep(gene,epimut_number),up_or_down=trace$values,duration=trace$lengths,completeness=completeness,stgen=c(-1,cumsum(trace$lengths)[1:(epimut_number-1)])))
+}
+
+
+epimut_duration_hmm_A<-data.frame()
+epimut_duration_hmm_B<-data.frame()
+
+for (gene in rownames(hmm_segmentation)){
+  epimut_duration_hmm_A<-rbind(epimut_duration_hmm_A,epimuts_from_hmm_trace(hmm_segmentation[gene,1:12],gene))
+  epimut_duration_hmm_B<-rbind(epimut_duration_hmm_B,epimuts_from_hmm_trace(hmm_segmentation[gene,13:24],gene))
+
+}
+
+epimut_duration_hmm_A<-epimut_duration_hmm_A[-which(epimut_duration_hmm_A$stgen==(-1)),]
+epimut_duration_hmm_A<-epimut_duration_hmm_A[-which(epimut_duration_hmm_A$stgen==(12)),]
+
+epimut_duration_hmm_B<-epimut_duration_hmm_B[-which(epimut_duration_hmm_B$stgen==(-1)),]
+epimut_duration_hmm_B<-epimut_duration_hmm_B[-which(epimut_duration_hmm_B$stgen==(12)),]
+
+
+table(table(epimut_duration_hmm_A$ID))
+table(table(epimut_duration_hmm_B$ID))
+
+
+remove_A<-names(which(table(epimut_duration_hmm_A$ID)>7))
+remove_B<-names(which(table(epimut_duration_hmm_B$ID)>7))
+
+epimut_duration_hmm_A<-epimut_duration_hmm_A[-which(epimut_duration_hmm_A$ID %in% remove_A),]
+epimut_duration_hmm_B<-epimut_duration_hmm_B[-which(epimut_duration_hmm_B$ID %in% remove_B),]
+
+
+```
+
+```{r correct for missing generation 7}
+
+
+#correction to incorporate missing generation 7
+#assumes no change from generation 6 to 7 (overestimates duration)
+epimut_duration_hmm_A$stgen_corrected<-epimut_duration_hmm_A$stgen
+epimut_duration_hmm_A$duration_corrected<-epimut_duration_hmm_A$duration
+for (i in seq(nrow(epimut_duration_hmm_A))){
+  if (epimut_duration_hmm_A[i,"stgen"]>6){
+  epimut_duration_hmm_A[i,"stgen_corrected"]<-epimut_duration_hmm_A[i,"stgen_corrected"]+1
+  }
+  if ((epimut_duration_hmm_A[i,"stgen"]+epimut_duration_hmm_A[i,"duration"])>6 & epimut_duration_hmm_A[i,"stgen"]<7){
+  epimut_duration_hmm_A[i,"duration_corrected"]<-epimut_duration_hmm_A[i,"duration_corrected"]+1
+  }
+}
+
+
+epimut_duration_hmm_B$stgen_corrected<-epimut_duration_hmm_B$stgen
+epimut_duration_hmm_B$duration_corrected<-epimut_duration_hmm_B$duration
+for (i in seq(nrow(epimut_duration_hmm_B))){
+  if (epimut_duration_hmm_B[i,"stgen"]>6){
+  epimut_duration_hmm_B[i,"stgen_corrected"]<-epimut_duration_hmm_B[i,"stgen_corrected"]+1
+  }
+  if ((epimut_duration_hmm_B[i,"stgen"]+epimut_duration_hmm_B[i,"duration"])>6 & epimut_duration_hmm_B[i,"stgen"]<7){
+  epimut_duration_hmm_B[i,"duration_corrected"]<-epimut_duration_hmm_B[i,"duration_corrected"]+1
+  }
+}
+
+epimut_duration_hmm_A$duration<-epimut_duration_hmm_A$duration_corrected
+epimut_duration_hmm_B$duration<-epimut_duration_hmm_B$duration_corrected
+epimut_duration_hmm_A$stgen<-epimut_duration_hmm_A$stgen_corrected
+epimut_duration_hmm_B$stgen<-epimut_duration_hmm_B$stgen_corrected
+
+epimut_duration_hmm_A$stgen_corrected<-NULL; epimut_duration_hmm_B$stgen_corrected<-NULL
+epimut_duration_hmm_A$duration_corrected<-NULL; epimut_duration_hmm_B$duration_corrected<-NULL
+
+
+
+```
+
+
+```{r plot data}
+
+##all epimutations
+table(epimut_duration_hmm_A$duration)
+table(epimut_duration_hmm_A$up_or_down)
+table(epimut_duration_hmm_A[which(epimut_duration_hmm_A$completeness==0),"duration"])
+table(epimut_duration_hmm_A[which(epimut_duration_hmm_A$completeness==1),"duration"])
+
+A_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_hmm_A[which(epimut_duration_hmm_A$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_hmm_A[which(epimut_duration_hmm_A$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(A_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage A, hmm segmentation")+theme_classic()
+ggsave("../05_Figure3/HMM_segmentation_duration_barplots_A.pdf",dpi="retina")
+
+
+
+##all epimutations
+table(epimut_duration_hmm_B$duration)
+table(epimut_duration_hmm_B$up_or_down)
+table(epimut_duration_hmm_B[which(epimut_duration_hmm_B$completeness==0),"duration"])
+table(epimut_duration_hmm_B[which(epimut_duration_hmm_B$completeness==1),"duration"])
+
+B_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_hmm_B[which(epimut_duration_hmm_B$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_hmm_B[which(epimut_duration_hmm_B$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(B_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage B, hmm segmentation")+theme_classic()
+ggsave("../05_Figure3/HMM_segmentation_duration_barplots_B.pdf",dpi="retina")
+
+
+#both lineages
+
+##all epimutations
+epimut_duration_hmm_both<-rbind(epimut_duration_hmm_A,epimut_duration_hmm_B)
+
+table(epimut_duration_hmm_both$duration)
+table(epimut_duration_hmm_both$up_or_down)
+table(epimut_duration_hmm_both[which(epimut_duration_hmm_both$completeness==0),"duration"])
+table(epimut_duration_hmm_both[which(epimut_duration_hmm_both$completeness==1),"duration"])
+
+both_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_hmm_both[which(epimut_duration_hmm_both$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_hmm_both[which(epimut_duration_hmm_both$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(both_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("both lineages, hmm segmentation")+theme_classic()
+ggsave("../05_Figure3/HMM_segmentation_duration_barplots_bothAB.pdf",dpi="retina")
+
+
+write.table(epimut_duration_hmm_A,file="../05_Figure3/epimut_duration_batchremoved_HMM_linA_JOINT_p1e-4.txt",quote = FALSE,row.names = FALSE,sep="\t")
+write.table(epimut_duration_hmm_B,file="../05_Figure3/epimut_duration_batchremoved_HMM_linB_JOINT_p1e-4.txt",quote = FALSE,row.names = FALSE, sep="\t")
+
+
+```
+
+
+
+
+
+
+

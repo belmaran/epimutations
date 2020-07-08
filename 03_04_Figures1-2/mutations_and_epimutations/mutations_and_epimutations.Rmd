@@ -1,0 +1,107 @@
+---
+title: "mutations_and_epimutations"
+author: "Toni Beltran"
+date: "17/12/2019"
+output: html_document
+---
+
+
+# FET for enrichment of mutations overall in epimutable genes
+
+This code takes all mutations, overlap with epimutable genes and see if the overlap is significant. The overlap is done in two alternative ways: considering the gene regions alone, and the gene regions +-1kb in order to include potential promoter mutations. In none of the two analyses the overlap is different that would be expected by chance.
+
+```{r fishers exact test for enrichment of mutations in epimutable genes}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/03_Figure1/mutations_and_epimutations/")
+
+#1112 total mutations (525 in our 11 lines)
+#15 overlapping with epimutable gene models, comprising a total span of 1513067 nt
+#24 overlapping with epimutable genes plus 1kb upstream and downstream, comprising a total span of 2351411 nt
+
+genespan<-read.table("epimutatedgenes.9col.sorted.gff",sep="\t")
+genespan<-sum(genespan$V5-genespan$V4)
+genespan 
+
+gene_plus1kbspan<-read.table("epimutatedgenes.9col.sorted.1kb.merged.gff")
+gene_plus1kbspan<-sum(gene_plus1kbspan$V3-gene_plus1kbspan$V2)
+gene_plus1kbspan
+
+cel_span<-100286401
+
+fisher.test(cbind(c(15,1512296),c(1112,cel_span))) #NS
+fisher.test(cbind(c(24,1512296+866280),c(1112,cel_span))) #NS
+fisher.test(cbind(c(6,1512296),c(525,cel_span))) #NS
+fisher.test(cbind(c(13,1512296+866280),c(525,cel_span))) #NS
+
+
+
+###rest of PC genes as a control/baseline
+
+
+#1112 total mutations (525 in our 11 lines)
+#15 overlapping with epimutable gene models, comprising a total span of 1513067 nt
+#24 overlapping with epimutable genes plus 1kb upstream and downstream, comprising a total span of 2351411 nt
+
+genespan<-read.table("all_mRNAs.merge.gff",sep="\t")
+genespan<-sum(genespan$V3-genespan$V2)
+genespan 
+
+gene_plus1kbspan<-read.table("all_mRNAs_GENE_AND_1KB.sorted.merged.gff")
+gene_plus1kbspan<-sum(gene_plus1kbspan$V3-gene_plus1kbspan$V2)
+gene_plus1kbspan
+
+cel_span<-100286401
+
+fisher.test(cbind(c(685,61503720),c(1112,cel_span))) #NS
+fisher.test(cbind(c(891,80912449),c(1112,cel_span))) #NS
+
+fisher.test(cbind(c(328,61503720),c(525,cel_span))) #NS
+fisher.test(cbind(c(421,80912449),c(525,cel_span))) #NS
+
+
+
+```
+
+# Mutations vs epimutations
+
+Here we look at the individual cases of overlap between mutations and epimutable genes, and we plot the 22G-RNA normalized counts for all those cases, in order to see whether the mutated lines have significantly different 22G levels. There is no evidence that this is the case from this analysis
+
+```{r looking at individual overlapping mutations}
+
+overlapping_mutations<-read.table("overlap_mutations_and_epimutations.txt",sep="\t")
+overlapping_mutations_1kb<-read.table("overlap_mutations_and_epimutations_1kb.annotated.txt",sep="\t")
+
+overlapping_mutations
+overlapping_mutations_1kb
+
+genes<-c("Y54F10BM.15","C06B8.7","F39C12.1","F14F4.3","Y102A11A.3","C53C7.5","Y39B6A.41","W03C9.6.2",
+         "F55H12.3","ZK909.5","ZK673.4","ZK1151.1","F56D12.4","T05E11.9","F32D8.1")
+genes_plus1kb<-c("T10D4.3","C44B7.11","W02B8.3","Y54F10BM.15","F42C5.6","F55G11.8","F57G4.4","Y17D7B.10",
+                 "F19H6.5")
+
+gene<-c(genes,genes_plus1kb)
+mutated_in<-c(as.character(overlapping_mutations$V4),as.character(overlapping_mutations_1kb$V4))
+
+ttgcount_data<-read.table("../../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+segmentation_data<-read.table("../k-means_segmentation_epimutable_genes.txt")
+
+for (i in seq(24)){
+if (mutated_in[i] %in% c("1A","1B","1C","1D","1F","1G","1H","1I","1J","1K","1L")){
+     pdf(paste(paste(paste(gene[i],"mutated in",sep=" "),mutated_in[i],sep=" "),"pdf",sep="."))
+     barplot(as.numeric(ttgcount_data[gene[i],25:ncol(ttgcount_data)]),
+     names=colnames(ttgcount_data[,25:ncol(ttgcount_data)]),las=2,
+     main=paste(paste(gene[i],"mutated in",sep=" "),mutated_in[i],sep=" "),ylab="normalized 22G counts")
+     dev.off()
+     
+     barplot(as.numeric(ttgcount_data[gene[i],25:ncol(ttgcount_data)]),
+     names=colnames(ttgcount_data[,25:ncol(ttgcount_data)]),las=2,
+     main=paste(paste(gene[i],"mutated in",sep=" "),mutated_in[i],sep=" "),ylab="normalized 22G counts")
+     
+}}
+
+
+epimut_segmentation<-read.table("epimut_segmentation_with_median.txt")
+
+
+```
+

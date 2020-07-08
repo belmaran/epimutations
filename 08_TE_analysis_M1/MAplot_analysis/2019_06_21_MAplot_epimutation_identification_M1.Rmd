@@ -1,0 +1,163 @@
+---
+title: "2019_06_21_MAplot_epimutation_identification_M1"
+author: "Toni Beltran"
+date: "21/06/2019"
+output: html_document
+---
+
+```{r MAplot analysis}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/08_TE_analysis_M1/MAplot_analysis")
+
+library(MASS)
+library(ggplot2)
+library(viridis)
+library(msir)
+theme_set(theme_bw(base_size = 16))
+
+#density
+get_density <- function(x, y, ...) {
+  dens <- MASS::kde2d(x, y, ...)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
+
+MAplot_filter<-function(normcounts,cond1,cond2,padj_threshold){
+  print(c(cond1,cond2))
+  
+  #make dat df for ggplotting
+  dat <- data.frame(x=log2(normcounts[,cond1]+1),y=log2(normcounts[,cond2]+1),mean=log2((normcounts[,cond1]+normcounts[,cond2])/2+1),ID=rownames(normcounts))
+  dat$fc<-dat$y-dat$x
+  dat <- dat[-which(dat$mean<2),]
+  dat <- dat[order(dat$mean,decreasing = FALSE),]
+  
+  #loess fit
+  l<-loess.sd(x = dat$mean, y=dat$fc,nsigma = 1.96)
+  l_fit<-data.frame(x=l$x,y=l$y,sd=l$sd,upper=l$upper,lower=l$lower,ID=dat$ID)
+  l_fit$Z<-(dat$fc-l_fit$y)/l_fit$sd
+  l_fit$pvalue<-2*pnorm(-abs(l_fit$Z))
+  l_fit$padj<-p.adjust(l_fit$pvalue,method = "fdr")
+  #print(l_fit[which(l_fit$padj<padj_threshold),])
+  
+  l_fit$fc<-dat$fc
+  
+  print(ggplot(l_fit)+geom_point(aes(fc,-log10(padj))))
+  
+  #print(ggplot(l_fit,aes(x=pvalue))+geom_histogram(bins=100))
+  #print(ggplot(l_fit,aes(x=padj))+geom_histogram(bins=100))
+  
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$ID %in% l_fit[which(l_fit$padj<padj_threshold),"ID"]),"sig"]<-1
+  dat[which(dat$mean>13),"sig"]<-0
+  
+  #MA plot with fit
+  dat$density <- get_density(dat$mean, dat$fc, n = 100)
+  print(ggplot(dat) + geom_point(aes(mean,fc, color = density)) + scale_color_viridis()+ xlab(paste("log2 mean",paste(cond1,cond2,sep="-"),sep=" ")) + ylab(paste("log2 FC",paste(cond1,cond2,sep="-")))+ggtitle(paste(cond1,cond2,sep=" vs "))+geom_line(aes(x=l_fit$x,y=l_fit$y),color="pink")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="pink",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="pink",linetype="dashed")+geom_point(aes(mean,fc),subset(dat,sig==1),color="red"))
+
+  #plot log2 counts
+  dat$density <- get_density(dat$x, dat$y, n = 100)
+  print(ggplot(dat) + geom_point(aes(x, y, color = density)) + scale_color_viridis()+ xlab(paste(paste("log2(normalised counts+1",cond1,sep=" "),")",sep="")) + ylab(paste(paste("log2(normalised counts+1",cond2,sep=" "),")",sep=""))+ggtitle(paste(cond1,cond2,sep=" vs "))+geom_point(aes(x,y),subset(dat,sig==1),color="red"))
+  
+  dat$line1<-rep(cond1,nrow(dat)); dat$line2<-rep(cond2,nrow(dat))
+  dat<-merge(dat,l_fit[,c("padj","ID")],by="ID")
+  
+  return(dat[which(dat$sig==1),c("ID","mean","fc","padj","line1","line2")])
+
+}
+
+```
+
+```{r 22Gs ALL}
+
+ttg_DEseqnorm<-read.table("../22G_counts/final_counts_table/all_counts_M1_deseqnorm_averaged.txt")
+
+pairwise_DE22Gs_genbygen<-data.frame(ID=character(),mean=character(),fc=character(),line1=character(),line2=character())
+for (i in seq(ncol(ttg_DEseqnorm[,1:24]))){
+  for (j in seq(ncol(ttg_DEseqnorm[,1:24]))){
+    if (i<j){
+      pairwise_DE22Gs_genbygen<-rbind.data.frame(pairwise_DE22Gs_genbygen,MAplot_filter(ttg_DEseqnorm[,1:24],colnames(ttg_DEseqnorm[,1:24])[i],colnames(ttg_DEseqnorm[,1:24])[j],0.01))
+    }}}
+
+write.table(pairwise_DE22Gs_genbygen,file="MAplot_filtering_22Gs_genbygen_p1e-2.txt",quote=FALSE,row.names = FALSE)
+
+
+pairwise_DE22Gs_gens25100<-data.frame(ID=character(),mean=character(),fc=character(),line1=character(),line2=character())
+for (i in seq(ncol(ttg_DEseqnorm[,25:47]))){
+  for (j in seq(ncol(ttg_DEseqnorm[,25:47]))){
+    if (i<j){
+      pairwise_DE22Gs_gens25100<-rbind.data.frame(pairwise_DE22Gs_gens25100,MAplot_filter(ttg_DEseqnorm[,25:47],colnames(ttg_DEseqnorm[,25:47])[i],colnames(ttg_DEseqnorm[,25:47])[j],0.01))
+    }}}
+write.table(pairwise_DE22Gs_gens25100,file="MAplot_filtering_22Gs_gens25100_p1e-2.txt",quote=FALSE,row.names = FALSE)
+
+
+```
+
+
+```{r MAplot for figure 1B}
+
+MAplot_filter_savepdf<-function(normcounts,cond1,cond2,padj_threshold){
+  print(c(cond1,cond2))
+  
+  #make dat df for ggplotting
+  dat <- data.frame(x=log2(normcounts[,cond1]+1),y=log2(normcounts[,cond2]+1),mean=log2((normcounts[,cond1]+normcounts[,cond2])/2+1),ID=rownames(normcounts))
+  dat$fc<-dat$y-dat$x
+  dat <- dat[-which(dat$mean<2),]
+  dat <- dat[order(dat$mean,decreasing = FALSE),]
+  
+  #loess fit
+  l<-loess.sd(x = dat$mean, y=dat$fc,nsigma = 1.96)
+  l_fit<-data.frame(x=l$x,y=l$y,sd=l$sd,upper=l$upper,lower=l$lower,ID=dat$ID)
+  l_fit$Z<-(dat$fc-l_fit$y)/l_fit$sd
+  l_fit$pvalue<-2*pnorm(-abs(l_fit$Z))
+  l_fit$padj<-p.adjust(l_fit$pvalue,method = "fdr")
+  #print(l_fit[which(l_fit$padj<padj_threshold),])
+  
+  l_fit$fc<-dat$fc
+  
+  print(ggplot(l_fit)+geom_point(aes(fc,-log10(padj))))
+  
+  #print(ggplot(l_fit,aes(x=pvalue))+geom_histogram(bins=100))
+  #print(ggplot(l_fit,aes(x=padj))+geom_histogram(bins=100))
+  
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$ID %in% l_fit[which(l_fit$padj<padj_threshold),"ID"]),"sig"]<-1
+  dat[which(dat$mean>13),"sig"]<-0
+  
+  #MA plot with fit
+  dat$density <- get_density(dat$mean, dat$fc, n = 100)
+  print(ggplot(dat) + geom_point(aes(mean,fc, color = density)) + scale_color_viridis()+ xlab(paste("log2 mean",paste("PeMA",cond2,sep="-"),sep=" ")) + ylab(paste("log2 fold change",paste("PeMA",cond2,sep="-")))+ggtitle(paste("PeMA",cond2,sep=" vs "))+geom_line(aes(x=l_fit$x,y=l_fit$y),color="pink")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="pink",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="pink",linetype="dashed")+geom_point(aes(mean,fc),subset(dat,sig==1),color="red"))
+  ggsave(filename="MAplot_filtering_example.pdf",dpi="retina")
+  
+  #plot log2 counts
+  dat$density <- get_density(dat$x, dat$y, n = 100)
+  print(ggplot(dat) + geom_point(aes(x, y, color = density)) + scale_color_viridis()+ xlab(paste(paste("log2(normalised counts+1",cond1,sep=" "),")",sep="")) + ylab(paste(paste("log2(normalised counts+1","PeMA",sep=" "),")",sep=""))+ggtitle(paste(cond1,cond2,sep=" vs "))+geom_point(aes(x,y),subset(dat,sig==1),color="red"))
+  
+  dat$line1<-rep(cond1,nrow(dat)); dat$line2<-rep(cond2,nrow(dat))
+  dat<-merge(dat,l_fit[,c("padj","ID")],by="ID")
+  
+
+}
+
+
+#MAplot_filter_savepdf(ttg_DEseqnorm[25:47],colnames(ttg_DEseqnorm[25:47])[12],colnames(ttg_DEseqnorm[25:47])[2],1e-4)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```

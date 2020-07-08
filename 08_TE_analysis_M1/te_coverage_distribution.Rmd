@@ -1,0 +1,26 @@
+---
+title: "Te_cov_distribution"
+author: "Toni Beltran"
+date: "20/06/2019"
+output: html_document
+---
+
+```{r setup}
+
+library(ggplot2)
+
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/08_TE_analysis_M1")
+tecov<-read.table("te_coverage_distribution_all_txs",header=TRUE)
+ggplot(tecov)+geom_histogram(aes(x=proportion_te),breaks=seq(0,1,0.01))+
+  ylim(0,500)+
+  theme_classic()
+
+
+te_list<-tecov[which(tecov$proportion_te>0.8),"V1"]
+write.table(te_list,file = "TE_cov0.8_all_txs.txt",quote=FALSE,col.names = FALSE)
+
+te_list<-tecov[which(tecov$proportion_te>0.5),"V1"]
+write.table(te_list,file = "TE_cov0.5_all_txs.txt",quote=FALSE,col.names = FALSE)
+
+```

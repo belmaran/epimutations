@@ -1,0 +1,327 @@
+---
+title: "2019_06_24_survival_analysis_M1"
+author: "Toni Beltran"
+date: "24/06/2019"
+output: html_document
+---
+
+##22G data
+
+```{r load data}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/08_TE_analysis_M1/")
+
+library(survival)
+library(survminer)
+
+duration_A<-read.table("noiso/epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4_FCdata_noiso.txt",sep="\t",header=TRUE)
+duration_B<-read.table("noiso/epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4_FCdata_noiso.txt",sep="\t",header=TRUE)
+duration_A$lineage<-rep("A",nrow(duration_A)); duration_B$lineage<-rep("B",nrow(duration_B))
+duration_both<-rbind(duration_A,duration_B)
+
+table(table(duration_A$ID))
+table(table(duration_B$ID))
+
+
+surv_object<-Surv(duration_both$duration,duration_both$completeness)
+
+fit_noresponse<-survfit(surv_object~1)
+summary(fit_noresponse)
+ggsurvplot(fit_noresponse, data=duration_both,pval = TRUE)
+
+fit_lineage<-survfit(surv_object~lineage,data=duration_both)
+summary(fit_lineage)
+ggsurvplot(fit_lineage, data=duration_both,pval = TRUE)
+ggsave("survival_curves_by_lineage_p1e-4_kmeans.pdf")
+
+fit_wilcoxsig<-survfit(surv_object~wilcox_sig,data=duration_both)
+summary(fit_wilcoxsig)
+ggsurvplot(fit_wilcoxsig, data=duration_both,pval = TRUE)
+
+fit_upordown<-survfit(surv_object~up_or_down,data=duration_both)
+summary(fit_upordown)
+print(fit_upordown)
+ggsurvplot(fit_upordown, data=duration_both,pval = TRUE)
+ggsave("survival_curves_by_UPorDOWN_p1e-4_kmeans.pdf")
+
+
+fit_MAsig<-survfit(surv_object~MAplot_significant,data=duration_both)
+summary(fit_MAsig)
+ggsurvplot(fit_MAsig, data=duration_both,pval = TRUE)
+
+
+
+
+```
+
+##various transformations of the 22G data
+
+```{r fit continuous model, fold change}
+
+fit_coxph<-coxph(surv_object~1,data=duration_both)
+summary(fit_coxph)
+
+fit_coxph_22Gfc<-coxph(surv_object~X22G_fold_change,data=duration_both)
+summary(fit_coxph_22Gfc)
+
+duration_both$X22G_fold_change_abs<-abs(duration_both$X22G_fold_change)
+
+fit_coxph_22GfcABS<-coxph(surv_object~X22G_fold_change_abs,data=duration_both)
+summary(fit_coxph_22GfcABS)
+
+duration_both_posFC<-duration_both[which(duration_both$X22G_fold_change>0),]
+surv_object_pos22Gfc<-Surv(duration_both_posFC$duration,duration_both_posFC$completeness)
+fit_coxph_pos22Gfc<-coxph(surv_object_pos22Gfc~X22G_fold_change,data=duration_both_posFC)
+summary(fit_coxph_pos22Gfc)
+
+```
+
+
+##mRNA data
+
+```{r mrna data}
+
+fit_coxph_mrnafc<-coxph(surv_object~mRNA_fold_change,data=duration_both)
+summary(fit_coxph_mrnafc)
+
+duration_both$mRNA_fold_change_abs<-abs(duration_both$mRNA_fold_change)
+fit_coxph_mrnafcabs<-coxph(surv_object~mRNA_fold_change_abs,data=duration_both)
+summary(fit_coxph_mrnafcabs)
+
+duration_both$mRNA_fold_change_sign<-rep(NA,nrow(duration_both))
+duration_both$mRNA_fold_change_sign[which(duration_both$mRNA_fold_change>0)]<-1
+duration_both$mRNA_fold_change_sign[which(duration_both$mRNA_fold_change<0)]<-0
+
+fit_mRNAfcsign<-survfit(surv_object~mRNA_fold_change_sign,data=duration_both)
+summary(fit_mRNAfcsign)
+ggsurvplot(fit_mRNAfcsign,data=duration_both,pval = TRUE)
+
+hist(duration_both$mRNA_fold_change,breaks=100)
+duration_both$mRNA_fold_change_groups<-rep(NA,nrow(duration_both))
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change<(-1.5))]<-"<-1.5"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(-1.5) & duration_both$mRNA_fold_change<(-0.5))]<-"-1.5 to -0.5"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(-0.5) & duration_both$mRNA_fold_change<0.5)]<-"-0.5 to 0.5"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(0.5) & duration_both$mRNA_fold_change<1.5)]<-"0.5 to 1.5"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(1.5))]<-">1.5"
+
+fit_mRNAfc_groups<-survfit(surv_object~mRNA_fold_change_groups,data=duration_both)
+ggsurvplot(fit_mRNAfc_groups,data=duration_both,pval = TRUE)
+
+duration_both$mRNA_fold_change_groups<-rep(NA,nrow(duration_both))
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change<(-1))]<-"<-1"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(-1) & duration_both$mRNA_fold_change<(1))]<-"-1 to 1"
+duration_both$mRNA_fold_change_groups[which(duration_both$mRNA_fold_change>(1))]<-">1"
+
+fit_mRNAfc_groups<-survfit(surv_object~mRNA_fold_change_groups,data=duration_both)
+ggsurvplot(fit_mRNAfc_groups,data=duration_both,pval = TRUE)
+
+duration_both$mRNA_subtract<-duration_both$mRNA_after-duration_both$mRNA_before
+fit_coxph_mrnasubtract<-coxph(surv_object~mRNA_subtract,data=duration_both)
+summary(fit_coxph_mrnasubtract)
+
+
+```
+
+##22G data - only UP epimutations
+
+```{r fit continuous model, 22G abundance in the up state}
+
+up_duration<-duration_both[which(duration_both$up_or_down==2),]
+surv_UP<-Surv(up_duration$duration,up_duration$completeness)
+
+up_duration$X22G_totalchange<-up_duration$X22G_after-up_duration$X22G_before
+up_duration$logX22G_totalchange<-log2(up_duration$X22G_totalchange)
+
+UP_coxph<-coxph(surv_UP~X22G_fold_change_abs,data=up_duration)
+summary(UP_coxph)
+UP_coxph<-coxph(surv_UP~X22G_after,data=up_duration)
+summary(UP_coxph)
+UP_coxph<-coxph(surv_UP~X22G_totalchange,data=up_duration)
+summary(UP_coxph)
+UP_coxph<-coxph(surv_UP~logX22G_totalchange,data=up_duration)
+summary(UP_coxph)
+
+
+hist(up_duration$X22G_totalchange,breaks=100)
+up_duration$X22G_totalchange_groups<-rep("low_0-50",nrow(up_duration))
+up_duration[which(up_duration$X22G_totalchange>50 & up_duration$X22G_totalchange<200),"X22G_totalchange_groups"] <-"medium_50-200"
+up_duration[which(up_duration$X22G_totalchange>200),"X22G_totalchange_groups"] <-"high_>200"
+table(up_duration$X22G_totalchange_groups)
+fit_22Gtotalchange<-survfit(surv_UP~X22G_totalchange_groups,data=up_duration)
+summary(fit_22Gtotalchange)
+ggsurvplot(fit_22Gtotalchange,data=up_duration,pval=TRUE)
+ggsave("survival_analysis_22G_totalchange_kmeans.pdf")
+
+
+
+hist(up_duration$logX22G_totalchange,breaks=100)
+up_duration$X22G_totalchange_groups<-rep("low_<4",nrow(up_duration))
+up_duration[which(up_duration$logX22G_totalchange>4 & up_duration$logX22G_totalchange<8),"X22G_totalchange_groups"] <-"medium_4-8"
+up_duration[which(up_duration$logX22G_totalchange>7.999999),"X22G_totalchange_groups"] <-"high_>8"
+table(up_duration$X22G_totalchange_groups)
+fit_22Gtotalchange<-survfit(surv_UP~X22G_totalchange_groups,data=up_duration)
+summary(fit_22Gtotalchange)
+ggsurvplot(fit_22Gtotalchange,data=up_duration,pval = TRUE)
+ggsave("survival_analysis_22G_logtotalchange_kmeans.pdf")
+
+```
+
+
+```{r gene features}
+
+colnames(duration_both)[15]<-"ID_noiso"
+duration_both$censored<-duration_both$completeness
+
+gene_features<-read.table("../07_Gene_Sets/gene_features_cel.txt",sep=" ",header=TRUE)
+duration_both_geneinfo<-merge(duration_both,gene_features,by.x="ID_noiso",by.y="cosmid_ID")
+
+duration_both_geneinfo<-duration_both_geneinfo[which(duration_both_geneinfo$up_or_down==2),]
+
+duration_both_geneinfo$chr_domain<-rep("NA",nrow(duration_both_geneinfo))
+duration_both_geneinfo$chr_domain[which(duration_both_geneinfo$active==TRUE)]<-"active"
+duration_both_geneinfo$chr_domain[which(duration_both_geneinfo$regulated==TRUE)]<-"regulated"
+duration_both_geneinfo$chr_domain[which(duration_both_geneinfo$border==TRUE)]<-"border"
+duration_both_geneinfo$chr_domain[which(duration_both_geneinfo$X==TRUE)]<-"X"
+
+table(duration_both_geneinfo$chr_domain)
+
+surv_geneinfo<-Surv(time=duration_both_geneinfo[,"duration"],
+                    event=duration_both_geneinfo[,"censored"])
+fit_geneinfo<-survfit(surv_geneinfo~chr_domain,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_by_chromatin_domain_type_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ chr_domain, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+
+table(duration_both_geneinfo$H3K9me3)
+
+surv_geneinfo<-Surv(time=duration_both_geneinfo$duration,
+                    event=duration_both_geneinfo$censored)
+fit_geneinfo<-survfit(surv_geneinfo~H3K9me3,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ H3K9me3, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$H3K9me2)
+
+fit_geneinfo<-survfit(surv_geneinfo~H3K9me2,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ H3K9me2, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$piRNA_targets)
+
+fit_geneinfo<-survfit(surv_geneinfo~piRNA_targets,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_piRNAtargets_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ piRNA_targets, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$PATCs)
+
+fit_geneinfo<-survfit(surv_geneinfo~PATCs,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_PATCs_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ PATCs, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$csr1_targets)
+
+fit_geneinfo<-survfit(surv_geneinfo~csr1_targets,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_CSR1targets_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ csr1_targets, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$hrde1_targets)
+
+fit_geneinfo<-survfit(surv_geneinfo~hrde1_targets,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_HRDE1targets_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ hrde1_targets, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+table(duration_both_geneinfo$wago1_targets)
+
+fit_geneinfo<-survfit(surv_geneinfo~wago1_targets,data=duration_both_geneinfo)
+summary(fit_geneinfo)
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE)
+ggsave("survival_UP_epimutations_p1e-4_WAGO1targets_kmeans.pdf")
+ggsurvplot(fit_geneinfo, data=duration_both_geneinfo,pval = TRUE,fun = "cumhaz")
+
+fit.coxph <- coxph(surv_geneinfo ~ wago1_targets, data = duration_both_geneinfo)
+summary(fit.coxph)
+
+
+fit.coxph <- coxph(surv_geneinfo ~ chr_domain + H3K9me3 + H3K9me2 + any5 + all5 + piRNA_targets + hrde1_targets + wago1_targets + csr1_targets + PATCs , 
+                   data = duration_both_geneinfo)
+
+summary(fit.coxph)
+```
+
+
+```{r PATC data}
+
+
+PATCs<-read.table("../07_Gene_Sets/PATC_Density_Firelab.txt",sep="\t",header = TRUE)
+duration_both_PATCdata<-merge(duration_both,PATCs,by.x="ID",by.y="Transcript.name")
+duration_both_PATCdata<-duration_both_PATCdata[which(duration_both_PATCdata$up_or_down==2),]
+
+
+surv_PATCdata<-Surv(time=duration_both_PATCdata[,"duration"],
+                    event=(duration_both_PATCdata[,"censored"]))
+
+duration_both_PATCdata$PATCdens<-rep("low",nrow(duration_both_PATCdata))
+duration_both_PATCdata$PATCdens[which(duration_both_PATCdata$PATC.density>17)]<-"high"
+
+
+fit_PATCs<-survfit(surv_PATCdata~PATCdens,data=duration_both_PATCdata)
+summary(fit_PATCs)
+ggsurvplot(fit_PATCs, data=duration_both_PATCdata,pval = TRUE)
+ggsurvplot(fit_PATCs, data=duration_both_PATCdata,pval = TRUE,fun = "cumhaz")
+
+
+fit.coxph <- coxph(surv_PATCdata ~ PATC.density, data = duration_both_PATCdata)
+print(summary(fit.coxph))
+
+hist(duration_both_PATCdata$PATC.density,breaks=200,xlim=c(0,20))
+
+
+```
+
+
+
+
+
+
+
+

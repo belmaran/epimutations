@@ -1,0 +1,33 @@
+---
+title: "rrf-3 targets in line F"
+output: html_document
+---
+
+```{r rrf-3}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/03_Figure1/mutations_and_epimutations/mutations_in_smallRNApathwaygenes/")
+
+ergo1_targets<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/ergo1_targets_almeida2018.txt",header=TRUE)
+alg34_targets<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/alg3-4_targets_almeida2018.txt",header=FALSE)
+
+ttgcounts_normalized<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/02_Normalised_counts/22G_RPMnorm_counts_averaged.txt")
+
+
+ergo1<-ttgcounts_normalized[which(rownames(ttgcounts_normalized) %in% ergo1_targets$X26G_methylated_targets),]
+alg34<-ttgcounts_normalized[which(rownames(ttgcounts_normalized) %in% alg34_targets$V1),]
+
+boxplot(ergo1[,25:47],outline=FALSE,main="ERGO-1 targets",las=2,cex=0.75,ylab="sum of 22G rpm mapping to gene")
+
+pdf("ergo1_targets_22Gs.pdf")
+boxplot(ergo1[,25:47],outline=FALSE,main="ERGO-1 targets",las=2,cex=0.75,ylab="sum of 22G rpm mapping to gene")
+dev.off()
+
+boxplot(alg34[,25:47],outline=FALSE,main="ALG-3/4 targets",las=2,cex=0.75,ylab="sum of 22G rpm mapping to gene")
+
+pdf("alg34_targets_22Gs.pdf")
+boxplot(alg34[,25:47],outline=FALSE,main="ALG-3/4 targets",las=2,cex=0.75,ylab="sum of 22G rpm mapping to gene")
+dev.off()
+
+
+```
+

@@ -1,0 +1,36 @@
+---
+title: "2019_05_08_get_background_for_epimutations.Rmd"
+author: "Toni Beltran"
+date: "08/05/2019"
+output: html_document
+---
+
+The point of this code is to select the subset of genes used as background in overlap analyses with the set of epimutable genes. Detection of epimutations is not sensitive for genes with low 22G signal, therefore these low expression genes should not contribute to the background set.
+In practice, I pulled out for each of the two epimutation experiments (long term and short experiment) the minimum expression level of any epimutated gene and selected the genes above that expression level as background.
+
+```{r cars}
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/03_Figure1/")
+pairwise_DE22Gs_genbygen<-read.table("MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+pairwise_DE22Gs_gens25_100<-read.table("MAplot_filtering_22Gs_gens25100_p1e-2.txt",header=TRUE)
+
+pairwise_DE22Gs_genbygen<-pairwise_DE22Gs_genbygen[which(pairwise_DE22Gs_genbygen$padj<1e-4),]
+pairwise_DE22Gs_gens25_100<-pairwise_DE22Gs_gens25_100[which(pairwise_DE22Gs_gens25_100$padj<1e-4),]
+
+min_mean_counts_for_epimuts_genbygen<-2**min(pairwise_DE22Gs_genbygen$mean)
+min_mean_counts_for_epimuts_gens25_100<-2**min(pairwise_DE22Gs_gens25_100$mean)
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+ttg_DEseqnorm_genbygen<-ttg_DEseqnorm[,1:24]
+ttg_DEseqnorm_gens25_100<-ttg_DEseqnorm[,25:47]
+
+
+ttg_genbygen_means<-data.frame(mean=apply(ttg_DEseqnorm_genbygen,MARGIN=1,FUN=mean))
+ttg_genbygen_background<-rownames(ttg_genbygen_means)[-which(ttg_genbygen_means$mean<4.9)]
+write.table(ttg_genbygen_background,file="MAplot_genbygen_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+ttg_gens25_100_means<-data.frame(mean=apply(ttg_DEseqnorm_gens25_100,MARGIN=1,FUN=mean))
+ttg_gens25_100_background<-rownames(ttg_gens25_100_means)[-which(ttg_gens25_100_means$mean<4.9)]
+write.table(ttg_gens25_100_background,file="MAplot_gens25_100_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+```
+

@@ -1,0 +1,482 @@
+---
+title: "2019_06_24_Toni_Beltran"
+date: "24/06/2019"
+output: html_document
+---
+
+```{r noise analysis}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES_Dryad/08_TE_analysis_M1/")
+
+library(ggplot2)
+library(MASS)
+library(viridis)
+library(msir)
+library(gplots)
+library(RColorBrewer)
+library(ggpubr)
+library(OneR)
+
+
+overall_sd<-function(row){
+sqsum=0
+ncomps=0
+for (i in seq(length(row))){
+  for (j in seq(length(row))){
+    if (i>j){
+    sqsum=sqsum+(row[j]-row[i])**2
+    ncomps=ncomps+1
+    }}} 
+return(sqrt(sqsum/ncomps))
+}
+
+
+technical_sd<-function(row){
+  sqsum=0
+  ncomps=0
+  for (i in seq(1,21,2)){
+    sqsum=sqsum+(row[i+1]-row[i])**2
+    ncomps=ncomps+1
+  }
+  return(sqrt(sqsum/ncomps))
+}
+
+
+#density
+get_density <- function(x, y, ...) {
+  dens <- MASS::kde2d(x, y, ...)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
+
+
+loess_fit_and_plotres<-function(dat,thr_type,thr,return_all,plot1_filename,plot2_filename){
+
+dat<-dat[which(dat$log10_mean>0),]
+
+#fit technical cv2 data
+l<-loess.sd(x = dat$log10_mean,y = dat$log10_tech_cv2, nsigma = 1.96)
+
+l_fit<-data.frame(x=l$x,y=l$y,sd=l$sd,upper=l$upper,lower=l$lower,ID=dat$ID)
+l_fit$Z<-(dat$log10_overall_cv2-l_fit$y)/l_fit$sd
+l_fit$pvalue<-pnorm(l_fit$Z,lower.tail = FALSE)
+
+l_fit_padj<-l_fit[which(l_fit$x>0.9999999),]
+print(nrow(l_fit_padj))
+l_fit_padj$padj<-p.adjust(l_fit_padj$pvalue,method = "fdr")
+l_fit<-merge(l_fit,l_fit_padj[,c("padj","ID")],by="ID",all.x=TRUE)
+l_fit<-l_fit[order(l_fit$x),]
+
+dat$ID<-rownames(dat)
+dat<-merge(dat,l_fit[,c("x","y","upper","lower","Z","pvalue","padj","ID")],by="ID",all.x=TRUE)
+rownames(dat)<-dat$ID; dat$ID<-NULL
+
+if (thr_type=="fdr"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$padj<thr),"sig"]<-1
+}
+
+else if (thr_type=="pval"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$pvalue<thr),"sig"]<-1
+}
+
+dat[which(dat$log10_mean<1),"sig"]<-0
+
+
+if (return_all==FALSE){
+
+ggplot(dat)+geom_histogram(aes(x=pvalue))
+ggplot(dat)+geom_histogram(aes(x=padj))
+
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_overall_cv2),color=alpha("#8da0cb",0.2))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="black",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="black")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="black",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_overall_cv2"]),color=alpha("#66c2a5",0.4))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot1_filename,dpi=150)
+
+dat$density<-get_density(dat$log10_mean,dat$log10_overall_cv2, n = 100)
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_overall_cv2,color=density))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="pink",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="pink")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="pink",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_overall_cv2"]),color=alpha("red",0.4))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot2_filename,dpi=150)
+
+}
+
+dat<-dat[order(dat$Z,decreasing=TRUE),]
+
+if (return_all==TRUE){return(dat)}else{return(dat[which(dat$sig==1),])}
+
+}
+
+
+```
+
+
+```{r load data}
+
+ttg_DEseqnorm<-read.table("22G_counts/final_counts_table/all_counts_M1_deseqnorm.txt")
+
+cor(log2(ttg_DEseqnorm[,c("C1_25","C2_25","C3_25","J1_25","J2_25","J3_25","PMA1","PMA2","PMA3")]+1))
+
+colnames(ttg_DEseqnorm)
+
+ttg_DEseqnorm_25<-ttg_DEseqnorm[,c(4:8,10:21,23:27)]
+ttg_DEseqnorm_100<-ttg_DEseqnorm[,c(28:49)]
+
+```
+
+
+```{r gen25}
+
+dat_25<-data.frame(mean=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=mean),
+                     sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=sd),
+                     overall_sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=overall_sd),
+                     tech_sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=technical_sd),
+                     ID=rownames(ttg_DEseqnorm_25),
+                     max=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN = max))
+dat_25<-dat_25[which(dat_25$mean>0),]
+
+#calculate log10cv2 values
+dat_25$log10_overall_cv2<-log10((dat_25$overall_sd/dat_25$mean)**2)
+dat_25$log10_tech_cv2<-log10((dat_25$tech_sd/dat_25$mean)**2)
+dat_25$log10_mean<-log10(dat_25$mean+1)
+dat_25$log10_cv2<-log10((dat_25$sd/dat_25$mean)**2)
+dat_25$ff<-(dat_25$sd**2)/dat_25$mean
+
+
+dat_25<-dat_25[order(dat_25$log10_mean,decreasing = FALSE),]
+
+
+#plot
+dat_25$density<-get_density(dat_25$log10_mean,dat_25$log10_overall_cv2, n = 100)
+ggplot(dat_25)+geom_point(aes(log10_mean,log10_overall_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 25, overall cv2")
+
+dat_25$density<-get_density(dat_25$log10_mean,dat_25$log10_tech_cv2, n = 100)
+ggplot(dat_25)+geom_point(aes(log10_mean,log10_tech_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 25, technical cv2")
+
+
+gen25_fdr0.1<-loess_fit_and_plotres(dat_25,"fdr",0.1,return_all = FALSE,"gen25_technoise_fit_fdr0.1.pdf","gen25_technoise_fit_fdr0.1_density.pdf")
+
+nrow(gen25_fdr0.1)
+
+write.table(rownames(gen25_fdr0.1),file="gen_25_HV22Gs_fdr0.1.txt",quote=FALSE,row.names = FALSE)
+write.table(rownames(dat_25[which(dat_25$log10_mean>1),]),file="gen_25_HV22Gs_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+
+
+```
+
+
+```{r gen 100 data}
+
+dat_100<-data.frame(mean=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=mean),
+                     sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=sd),
+                     overall_sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=overall_sd),
+                     tech_sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=technical_sd),
+                     ID=rownames(ttg_DEseqnorm_100),
+                     max=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN = max))
+dat_100<-dat_100[which(dat_100$mean>0),]
+
+#calculate log10cv2 values
+dat_100$log10_overall_cv2<-log10((dat_100$overall_sd/dat_100$mean)**2)
+dat_100$log10_tech_cv2<-log10((dat_100$tech_sd/dat_100$mean)**2)
+dat_100$log10_mean<-log10(dat_100$mean+1)
+dat_100$log10_cv2<-log10((dat_100$sd/dat_100$mean)**2)
+dat_100$ff<-(dat_100$sd**2)/dat_100$mean
+
+
+dat_100<-dat_100[order(dat_100$log10_mean,decreasing = FALSE),]
+
+
+#plot
+dat_100$density<-get_density(dat_100$log10_mean,dat_100$log10_overall_cv2, n = 100)
+ggplot(dat_100)+geom_point(aes(log10_mean,log10_overall_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 100, overall cv2")
+
+dat_100$density<-get_density(dat_100$log10_mean,dat_100$log10_tech_cv2, n = 100)
+ggplot(dat_100)+geom_point(aes(log10_mean,log10_tech_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 100, technical cv2")
+
+
+gen100_fdr1eminus4<-loess_fit_and_plotres(dat_100,"fdr",1e-4,return_all = FALSE,"gen100_technoise_fit_fdr1Eminus4.pdf","gen100_technoise_fit_fdr1Eminus4_density.pdf")
+
+nrow(gen100_fdr1eminus4)
+
+write.table(rownames(gen100_fdr1eminus4),file="gen_100_HV22Gs_fdr1e-4.txt",quote=FALSE,row.names = FALSE)
+
+write.table(rownames(dat_100[which(dat_100$log10_mean>1),]),file="gen_100_HV22Gs_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+
+```
+
+
+```{r plot small RNA pathway genes}
+
+gen25_noise_data<-loess_fit_and_plotres(dat_25,"fdr",0.05,return_all = TRUE)
+gen100_noise_data<-loess_fit_and_plotres(dat_100,"fdr",1e-4,return_all = TRUE)
+
+piRNA_targets<-read.table("../07_Gene_Sets/piRNA_targets_2fold"); piRNA_targets<-piRNA_targets$x
+piRNA_targets_4x<-read.table("../07_Gene_Sets/piRNA_targets_4fold"); piRNA_targets_4x<-piRNA_targets_4x$x
+CSR1_targets<-read.table("../07_Gene_Sets/CSR1_targets"); CSR1_targets<-CSR1_targets$x
+HRDE1_targets<-read.table("../07_Gene_Sets/WAGO9_targets"); HRDE1_targets<-HRDE1_targets$x
+WAGO1_targets<-read.table("../07_Gene_Sets/WAGO1_targets"); WAGO1_targets<-WAGO1_targets$x
+
+gen25_noise_data$piRNA<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1)); gen25_noise_data[which(rownames(gen25_noise_data) %in% piRNA_targets),"piRNA"]<-1
+gen100_noise_data$piRNA<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1)); gen100_noise_data[which(rownames(gen100_noise_data) %in% piRNA_targets),"piRNA"]<-1
+
+gen25_noise_data$CSR1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1)); gen25_noise_data[which(rownames(gen25_noise_data) %in% CSR1_targets),"CSR1"]<-1
+gen100_noise_data$CSR1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1)); gen100_noise_data[which(rownames(gen100_noise_data) %in% CSR1_targets),"CSR1"]<-1
+
+gen25_noise_data$HRDE1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1)); gen25_noise_data[which(rownames(gen25_noise_data) %in% HRDE1_targets),"HRDE1"]<-1
+gen100_noise_data$HRDE1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1)); gen100_noise_data[which(rownames(gen100_noise_data) %in% HRDE1_targets),"HRDE1"]<-1
+
+gen25_noise_data$WAGO1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1)); gen25_noise_data[which(rownames(gen25_noise_data) %in% WAGO1_targets),"WAGO1"]<-1
+gen100_noise_data$WAGO1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1)); gen100_noise_data[which(rownames(gen100_noise_data) %in% WAGO1_targets),"WAGO1"]<-1
+
+TEs<-read.table("TE_cov0.8_all_txs.txt"); TEs<-TEs$V2
+gen25_noise_data$TE<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1)); gen25_noise_data[which(rownames(gen25_noise_data) %in% TEs),"TE"]<-1
+gen100_noise_data$TE<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1)); gen100_noise_data[which(rownames(gen100_noise_data) %in% TEs),"TE"]<-1
+
+
+#plot gen 25 data
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=CSR1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_CSR1_targets.pdf",dpi=150)
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=HRDE1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_HRDE1_targets.pdf",dpi=150)
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=piRNA))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_piRNA_targets.pdf",dpi=150)
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=WAGO1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_WAGO1_targets.pdf",dpi=150)
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=TE))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_TEs.pdf",dpi=150)
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=TE))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_TEs.png",dpi=300,device = "png")
+
+pdf("gen_25_Zscores.pdf")
+boxplot(gen25_noise_data[which(gen25_noise_data$piRNA==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$HRDE1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$WAGO1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$CSR1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$TE==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+dev.off()
+
+#plot gen 100 data
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=CSR1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_CSR1_targets.pdf",dpi=150)
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=HRDE1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_HRDE1_targets.pdf",dpi=150)
+
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=piRNA))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_piRNA_targets.pdf",dpi=150)
+
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=WAGO1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_WAGO1_targets.pdf",dpi=150)
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=TE))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_TEs.pdf",dpi=150)
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=TE))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_TEs.png",dpi=300,device = "png")
+
+pdf("gen_100_Zscores.pdf")
+boxplot(gen100_noise_data[which(gen100_noise_data$piRNA==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$HRDE1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$WAGO1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$CSR1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$TE==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+dev.off()
+
+
+
+#Fano Factor with averaged data
+
+average_datasets<-function(df){
+  df_averaged<-data.frame(
+    a=(df[,1]+df[,2])/2,
+    b=(df[,3]+df[,4])/2,
+    c=(df[,5]+df[,6])/2,
+    d=(df[,7]+df[,8])/2,
+    f=(df[,9]+df[,10])/2,
+    g=(df[,11]+df[,12])/2,
+    h=(df[,13]+df[,14])/2,
+    i=(df[,15]+df[,16])/2,
+    j=(df[,17]+df[,18])/2,
+    k=(df[,19]+df[,20])/2,
+    l=(df[,21]+df[,22])/2)
+  
+  rownames(df_averaged)<-rownames(df)
+  return(df_averaged)
+}
+
+ttg_DEseqnorm_25_avg<-average_datasets(ttg_DEseqnorm_25)
+ttg_DEseqnorm_100_avg<-average_datasets(ttg_DEseqnorm_100)
+
+dat_25_avg<-data.frame(mean=apply(ttg_DEseqnorm_25_avg,MARGIN = 1,FUN=mean),
+                       sd=apply(ttg_DEseqnorm_25_avg,MARGIN = 1,FUN=sd))
+dat_25_avg$ff<-((dat_25_avg$sd)**2)/dat_25_avg$mean
+
+dat_100_avg<-data.frame(mean=apply(ttg_DEseqnorm_100_avg,MARGIN = 1,FUN=mean),
+                       sd=apply(ttg_DEseqnorm_100_avg,MARGIN = 1,FUN=sd))
+dat_100_avg$ff<-((dat_100_avg$sd)**2)/dat_100_avg$mean
+
+pdf("gen_25_ffs.pdf")
+boxplot(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Fano factor")
+dev.off()
+
+pdf("gen_100_ffs.pdf")
+boxplot(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Fano factor")
+dev.off()
+
+gen25_ffdata<-data.frame(ffs=c(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"])),
+                                      rep("TEs",length(dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"])))))
+gen25_ffdata$gene_class<-factor(gen25_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"))
+ggplot(gen25_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  ylim(0,50)
+
+
+gen100_ffdata<-data.frame(ffs=c(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"])),
+                                      rep("TEs",length(dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"])))))
+gen100_ffdata$gene_class<-factor(gen100_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"))
+ggplot(gen100_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  ylim(0,50)
+
+```
+
+
+
+```{r same noise analysis but only with genes with more than 10 22G normcounts}
+
+
+dat_25_avg<-dat_25_avg[which(dat_25_avg$mean>10),]
+dat_100_avg<-dat_100_avg[which(dat_100_avg$mean>10),]
+
+boxplot(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Fano factor")
+
+boxplot(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"),outline=FALSE,las=2,cex=0.5,ylab="Fano factor")
+
+gen25_ffdata<-data.frame(ffs=c(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"])),
+                                      rep("TEs",length(dat_25_avg[which(rownames(dat_25_avg) %in% TEs),"ff"])))))
+gen25_ffdata$gene_class<-factor(gen25_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"))
+ggplot(gen25_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  coord_cartesian(ylim=c(0,50))
+
+
+gen100_ffdata<-data.frame(ffs=c(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"])),
+                                      rep("TEs",length(dat_100_avg[which(rownames(dat_100_avg) %in% TEs),"ff"])))))
+gen100_ffdata$gene_class<-factor(gen100_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1","TEs"))
+ggplot(gen100_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  coord_cartesian(ylim=c(0,50))
+
+
+
+```
+
+
+
+

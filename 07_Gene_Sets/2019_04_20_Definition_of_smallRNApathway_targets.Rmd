@@ -1,0 +1,308 @@
+---
+title: "2019_04_19_small_RNA_target_definition"
+author: "Toni Beltran"
+date: "20/04/2019"
+output: html_document
+---
+
+## Definition of small RNA target genes from IP datasets
+
+We defined HRDE-1, WAGO-1 and CSR-1 targets using publicly available IP datasets.
+
+```{r load data}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/")
+
+library(MASS)
+library(ggplot2)
+library(viridis)
+library(msir)
+library(gplots)
+theme_set(theme_bw(base_size = 16))
+
+```
+
+
+```{r define functions for analysis of the IP data}
+
+filter_size<-function(df){
+  df<-df[which(df$V1>18 & df$V1<35),]
+  return(df)
+}
+
+analyse_IP<-function(IP_22Gs,input_22Gs,IP_trans,input_trans,IP_gw,input_gw){
+  
+hrde1_IP<-read.table(IP_22Gs,sep="\t")
+hrde1_input<-read.table(input_22Gs,sep="\t")
+hrde1_IP_all<-read.table(IP_trans,sep="\t")
+hrde1_input_all<-read.table(input_trans,sep="\t")
+hrde1_IP_gw<-read.table(IP_gw,sep="\t")
+hrde1_input_gw<-read.table(input_gw,sep="\t")
+
+hrde1_IP<-filter_size(hrde1_IP)
+hrde1_input<-filter_size(hrde1_input)
+hrde1_IP_all<-filter_size(hrde1_IP_all)
+hrde1_input_all<-filter_size(hrde1_input_all)
+hrde1_IP_gw<-filter_size(hrde1_IP_gw)
+hrde1_input_gw<-filter_size(hrde1_input_gw)
+
+totalIP<-sum(hrde1_IP$V3)
+totalinput<-sum(hrde1_input$V3)
+totalIPtrans<-sum(hrde1_IP_all$V3)
+totalinputtrans<-sum(hrde1_input_all$V3)
+totalIPgw<-sum(hrde1_IP_gw$V3)
+totalinputgw<-sum(hrde1_input_gw$V3)
+
+print("size factors (22Gs, trans, gw)")
+print(sum(hrde1_IP$V3)/sum(hrde1_input$V3))
+print(sum(hrde1_IP_all$V3)/sum(hrde1_input_all$V3))
+print(sum(hrde1_IP_gw$V3)/sum(hrde1_input_gw$V3))
+
+
+hrde1_IP_counts<-aggregate(V3 ~ V6,data=hrde1_IP,FUN=sum)
+hrde1_input_counts<-aggregate(V3 ~ V6,data=hrde1_input,FUN=sum)
+
+hrde1_IP_counts$IP_rpm_trans<-hrde1_IP_counts$V3/totalIPtrans*1e6
+hrde1_IP_counts$IP_rpm_gw<-hrde1_IP_counts$V3/totalIPgw*1e6
+hrde1_IP_counts$IP_rpm_22Gs<-hrde1_IP_counts$V3/totalIP*1e6
+hrde1_input_counts$input_rpm_trans<-hrde1_input_counts$V3/totalinputtrans*1e6
+hrde1_input_counts$input_rpm_gw<-hrde1_input_counts$V3/totalinputgw*1e6
+hrde1_input_counts$input_rpm_22Gs<-hrde1_input_counts$V3/totalinput*1e6
+colnames(hrde1_IP_counts)[1:2]<-c("Gene.ID","IP_counts")
+colnames(hrde1_input_counts)[1:2]<-c("Gene.ID","input_counts")
+
+hrde1_data<-merge(hrde1_input_counts,hrde1_IP_counts,by="Gene.ID",all=TRUE)
+hrde1_data[is.na(hrde1_data)]<-0
+head(hrde1_data)
+
+
+library(scales)
+plot(log2(hrde1_data$input_rpm_22Gs),log2(hrde1_data$IP_rpm_22Gs),pch=19,col=alpha("darkblue",0.1))
+abline(a=0,b=1,col="red",lty="dashed")
+
+
+plot(log2(hrde1_data$input_rpm_trans),log2(hrde1_data$IP_rpm_trans),pch=19,col=alpha("darkblue",0.1))
+abline(a=0,b=1,col="red",lty="dashed")
+
+
+plot(log2(hrde1_data$input_rpm_gw),log2(hrde1_data$IP_rpm_gw),pch=19,col=alpha("darkblue",0.1))
+abline(a=0,b=1,col="red",lty="dashed")
+
+
+#plot log2 fold change and decide threshold for hrde-1 targets...
+#try same with CSR-1 and WAGO-1 data, maybe try alternative HRDE-1 data to see if I get a better enrichment...
+#maybe normalise to rpkm too before filtering targets?
+
+
+return(hrde1_data)
+
+}
+
+
+plot_log2fc_distribution<-function(hrde1_data){
+  
+  hist(log2((hrde1_data$IP_rpm_22Gs+10)/(hrde1_data$input_rpm_22Gs+10)),breaks=100)
+  hist(log2((hrde1_data$IP_rpm_22Gs)/(hrde1_data$input_rpm_22Gs)),breaks=100)
+
+  hist(log2((hrde1_data$IP_rpm_trans+10)/(hrde1_data$input_rpm_trans+10)),breaks=100)
+  hist(log2((hrde1_data$IP_rpm_trans)/(hrde1_data$input_rpm_trans)),breaks=100)
+
+  hist(log2((hrde1_data$IP_rpm_gw+5)/(hrde1_data$input_rpm_gw+5)),breaks=100)
+  hist(log2((hrde1_data$IP_rpm_gw)/(hrde1_data$input_rpm_gw)),breaks=100)
+}
+
+
+plot_fc_vs_abundance<-function(hrde1_data,extra_rpm_fc){
+  
+  plot(log2(0.5*(hrde1_data$IP_rpm_22Gs+hrde1_data$input_rpm_22Gs)),log2((hrde1_data$IP_rpm_22Gs)/(hrde1_data$input_rpm_22Gs)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm 22Gs")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+
+  plot(log2(0.5*(hrde1_data$IP_rpm_22Gs+hrde1_data$input_rpm_22Gs)),log2((hrde1_data$IP_rpm_22Gs+extra_rpm_fc)/(hrde1_data$input_rpm_22Gs+extra_rpm_fc)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm 22Gs, exp+1rpm")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+
+ 
+    plot(log2(0.5*(hrde1_data$IP_rpm_trans+hrde1_data$input_rpm_trans)),log2((hrde1_data$IP_rpm_trans)/(hrde1_data$input_rpm_trans)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm trans")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+
+  
+  plot(log2(0.5*(hrde1_data$IP_rpm_trans+hrde1_data$input_rpm_trans)),log2((hrde1_data$IP_rpm_trans+extra_rpm_fc)/(hrde1_data$input_rpm_trans+extra_rpm_fc)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm trans, exp+1rpm")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+
+  
+    plot(log2(0.5*(hrde1_data$IP_rpm_gw+hrde1_data$input_rpm_gw)),log2((hrde1_data$IP_rpm_gw)/(hrde1_data$input_rpm_gw)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm gw")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+
+   
+  plot(log2(0.5*(hrde1_data$IP_rpm_gw+hrde1_data$input_rpm_gw)),log2((hrde1_data$IP_rpm_gw+extra_rpm_fc)/(hrde1_data$input_rpm_gw+extra_rpm_fc)),ylab="log2 FC IP/input",xlab = "log2(mean abundance)",pch=19,col=alpha("darkblue",0.1),main="norm gw, exp+1rpm")
+  abline(h=0,col="red",lty="dashed")
+  abline(h=1,col="lightblue",lty="dashed")
+  abline(v=log2(10),col="green")
+ 
+}
+
+```
+
+```{r WAGO-9 data}
+
+print("wago-9 (hrde-1) Shirayama 2012")
+wago9_data<-analyse_IP("IP_data/GSM948685_wago9IP.fasta.form.trans.aln.antisense22Gs",
+                       "IP_data/GSM948684_wago9input.fasta.form.trans.aln.antisense22Gs",
+                       "IP_data/GSM948685_wago9IP.fasta.form.trans.aln",
+                       "IP_data/GSM948684_wago9input.fasta.form.trans.aln",
+                       "IP_data/GSM948685_wago9IP.fasta.form.genome.aln",
+                       "IP_data/GSM948684_wago9input.fasta.form.genome.aln")
+plot_fc_vs_abundance(wago9_data,1)
+
+```
+
+```{r WAGO-1}
+
+print("wago1 Gu 2009")
+wago1_data<-analyse_IP("IP_data/SRR030711_WAGO1_IP.fastq.trimmed.fasta.form.trans.aln.antisense22Gs",
+                       "IP_data/SRR030712_WAGO1_input.fastq.trimmed.fasta.form.trans.aln.antisense22Gs",
+                       "IP_data/SRR030711_WAGO1_IP.fastq.trimmed.fasta.form.trans.aln",
+                       "IP_data/SRR030712_WAGO1_input.fastq.trimmed.fasta.form.trans.aln",
+                       "IP_data/SRR030711_WAGO1_IP.fastq.trimmed.fasta.form.genome.aln",
+                       "IP_data/SRR030712_WAGO1_input.fastq.trimmed.fasta.form.genome.aln")
+plot_fc_vs_abundance(wago1_data,1)
+
+```
+
+
+```{r CSR-1}
+
+print("csr1 Claycomb 2010")
+csr1_data<-analyse_IP("IP_data/SRR030720_CSR1_IP.fastq.trimmed.fasta.form.trans.aln.antisense22Gs",
+                      "IP_data/SRR030721_CSR1_input.fastq.trimmed.fasta.form.trans.aln.antisense22Gs",
+                      "IP_data/SRR030720_CSR1_IP.fastq.trimmed.fasta.form.trans.aln",
+                      "IP_data/SRR030721_CSR1_input.fastq.trimmed.fasta.form.trans.aln",
+                      "IP_data/SRR030720_CSR1_IP.fastq.trimmed.fasta.form.genome.aln",
+                      "IP_data/SRR030721_CSR1_input.fastq.trimmed.fasta.form.genome.aln")
+plot_fc_vs_abundance(csr1_data,1)
+
+```
+
+
+```{r select gene sets}
+
+
+calculate_log2_fcs<-function(hrde1_data,addrpm){
+  hrde1_data$log2fc_22G_rpm<-log2((hrde1_data$IP_rpm_22Gs+addrpm)/(hrde1_data$input_rpm_22Gs+addrpm))
+  hrde1_data$log2fc_gw_rpm<-log2((hrde1_data$IP_rpm_gw+addrpm)/(hrde1_data$input_rpm_gw+addrpm))
+  hrde1_data$log2fc_trans_rpm<-log2((hrde1_data$IP_rpm_trans+addrpm)/(hrde1_data$input_rpm_trans+addrpm))
+  return(hrde1_data)
+}
+
+wago9_data<-calculate_log2_fcs(wago9_data,1)
+wago1_data<-calculate_log2_fcs(wago1_data,1)
+csr1_data<-calculate_log2_fcs(csr1_data,1)
+
+wago9_targets<-wago9_data[which(wago9_data$log2fc_gw_rpm>0.58 & wago9_data$IP_rpm_gw>10),"Gene.ID"]
+wago1_targets<-wago1_data[which(wago1_data$log2fc_gw_rpm>0.58 & wago1_data$IP_rpm_gw>10),"Gene.ID"]
+csr1_targets<-csr1_data[which(csr1_data$log2fc_gw_rpm>0.58 & csr1_data$IP_rpm_gw>10),"Gene.ID"]
+
+length(wago9_targets)
+length(wago1_targets)
+length(csr1_targets)
+
+print_size_and_overlap<-function(set1,set2){
+  print(length(intersect(set1,set2)))
+  print(length(set1))
+  print(length(set2))
+}
+
+print_size_and_overlap(wago9_targets,wago1_targets)
+print_size_and_overlap(wago1_targets,csr1_targets)
+print_size_and_overlap(csr1_targets,wago9_targets)
+
+
+```
+
+##Definition of piRNA targets
+We defined piRNA targets as genes losing 22Gs in a prg-1 mutant background.
+
+```{r read prg-1 vs WT 22G data}
+
+#define piRNA targets using prg-1 vs WT 22G count data
+
+WT_ttgs<-read.table("IP_DATA/SRR2140760.fastq.trimmed.fasta.form.trans.aln.antisense22Gs")
+WT_ttgs_counts_summary<-aggregate(V3 ~ V6,data=WT_ttgs,FUN=sum)
+colnames(WT_ttgs_counts_summary)<-c("transcript","WT")
+
+prg1_ttgs<-read.table("IP_DATA/SRR2140763.fastq.trimmed.fasta.form.trans.aln.antisense22Gs")
+prg1_ttgs_counts_summary<-aggregate(V3 ~ V6,data=prg1_ttgs,FUN=sum)
+colnames(prg1_ttgs_counts_summary)<-c("transcript","prg1")
+
+TTGdata<-merge(WT_ttgs_counts_summary,prg1_ttgs_counts_summary,by="transcript",all=TRUE)
+TTGdata[is.na(TTGdata)]<-0
+rownames(TTGdata)<-TTGdata$transcript
+TTGdata$transcript<-NULL
+
+TTGdata_rpm<-data.frame(prop.table(as.matrix(TTGdata),margin = 2)*1e6)
+colSums(TTGdata_rpm)
+
+
+plot(log2(TTGdata_rpm$WT),log2(TTGdata_rpm$prg1),pch=20,col="lightblue")
+abline(a = c(0,1),col="red")
+
+```
+
+```{r prg-1 22G data}
+
+plot(log2(TTGdata_rpm$WT),log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)),pch=20,col="lightblue")
+abline(h =0,col="red",pch=20)
+points((log2(TTGdata_rpm$WT))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-1))],
+       (log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-1))],col="red",pch=20)
+abline(v =log2(20),col="blue",pch=20)
+
+ids<-which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT))<(-1)) & TTGdata_rpm$WT>20)
+thr_one<-rownames(TTGdata_rpm)[ids]
+length(thr_one)
+
+
+plot(log2(TTGdata_rpm$WT),log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)),pch=20,col="lightblue")
+abline(h =0,col="red",pch=20)
+points((log2(TTGdata_rpm$WT))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-1.5))],
+       (log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-1.5))],col="red",pch=20)
+abline(v =log2(20),col="blue",pch=20)
+
+ids<-which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT))<(-1.5)) & TTGdata_rpm$WT>20)
+thr_onepfive<-rownames(TTGdata_rpm)[ids]
+length(thr_onepfive)
+
+plot(log2(TTGdata_rpm$WT),log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)),pch=20,col="lightblue")
+abline(h =0,col="red",pch=20)
+points((log2(TTGdata_rpm$WT))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-2))],
+       (log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))[which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT)))< (-2))],col="red",pch=20)
+abline(v =log2(20),col="blue",pch=20)
+
+ids<-which((log2((TTGdata_rpm$prg1)/(TTGdata_rpm$WT))<(-2)) & TTGdata_rpm$WT>20)
+thr_two<-rownames(TTGdata_rpm)[ids]
+length(thr_two)
+
+
+```
+
+
+```{r save gene sets}
+
+write.table(wago9_targets,file = "WAGO9_targets",quote=FALSE,sep="\t")
+write.table(wago1_targets,file = "WAGO1_targets",quote=FALSE,sep="\t")
+write.table(csr1_targets,file = "CSR1_targets",quote=FALSE,sep="\t")
+write.table(thr_one,file = "piRNA_targets_2fold",quote = FALSE, sep = "\t")
+write.table(thr_two,file = "piRNA_targets_4fold",quote = FALSE, sep = "\t")
+
+```
+
+
+

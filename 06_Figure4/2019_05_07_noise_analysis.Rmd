@@ -1,0 +1,789 @@
+---
+title: "2019_05_06_noise_analysis.Rmd"
+author: "Toni Beltran"
+date: "06/05/2019"
+output: html_document
+---
+
+Here we quantify the level of variability of 22G-RNA populations on a gene-by-gene basis. We compare the level of observed variability to an estimate of technical noise obtained from technical replicates of small RNA libraries.
+This allows us to use the technical noise as a baseline to identify genes with increased variability in 22G-RNAs.
+
+```{r noise analysis}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES_Dryad/06_Figure4/")
+
+library(ggplot2)
+library(MASS)
+library(viridis)
+library(msir)
+library(gplots)
+library(RColorBrewer)
+library(ggpubr)
+library(OneR)
+
+
+overall_sd<-function(row){
+sqsum=0
+ncomps=0
+for (i in seq(length(row))){
+  for (j in seq(length(row))){
+    if (i>j){
+    sqsum=sqsum+(row[j]-row[i])**2
+    ncomps=ncomps+1
+    }}} 
+return(sqrt(sqsum/ncomps))
+}
+
+
+technical_sd<-function(row){
+  sqsum=0
+  ncomps=0
+  for (i in seq(1,21,2)){
+    sqsum=sqsum+(row[i+1]-row[i])**2
+    ncomps=ncomps+1
+  }
+  return(sqrt(sqsum/ncomps))
+}
+
+
+#density
+get_density <- function(x, y, ...) {
+  dens <- MASS::kde2d(x, y, ...)
+  ix <- findInterval(x, dens$x)
+  iy <- findInterval(y, dens$y)
+  ii <- cbind(ix, iy)
+  return(dens$z[ii])
+}
+
+
+#function that applies a lowess fit to the logged mean and cv2 data
+   #first this is applied to the technical noise data --> used as baseline to call HV22Gs
+   #then it is applied to the overall cv2 data --> used as a more conservative baseline to call HV22Gs
+   #the fits and the identified HV22Gs for a particular FDR threshold are plotted
+
+loess_fit_and_plotres<-function(dat,thr_type,thr,return_all,plot1_filename,plot2_filename,normalitytest,resnormality_filename){
+
+dat<-dat[which(dat$log10_mean>0),]
+
+#fit technical cv2 data
+l<-loess.sd(x = dat$log10_mean,y = dat$log10_tech_cv2, nsigma = 1.96)
+
+l_fit<-data.frame(x=l$x,y=l$y,sd=l$sd,upper=l$upper,lower=l$lower,ID=dat$ID)
+l_fit$Z<-(dat$log10_overall_cv2-l_fit$y)/l_fit$sd
+l_fit$pvalue<-pnorm(l_fit$Z,lower.tail = FALSE)
+
+l_fit$tech_Z<-(dat$log10_tech_cv2-l_fit$y)/l_fit$sd
+
+#checking normality of tech cv2-mean residuals
+
+if(normalitytest==TRUE){
+print(ggplot(l_fit[which(l_fit$x>0.9999999),])+geom_histogram(aes(x=tech_Z,y=..density..),bins=40)+
+        stat_function(fun = dnorm, n = 101, args = list(mean = 0, sd = 1))+
+        theme_classic())
+ggsave(resnormality_filename)
+
+
+pdf(paste("qqnorm_",resnormality_filename,sep=""))
+qqnorm(l_fit[which(l_fit$x>0.9999999),"tech_Z"])
+dev.off()
+}
+
+l_fit_padj<-l_fit[which(l_fit$x>0.9999999),]
+print(nrow(l_fit_padj))
+l_fit_padj$padj<-p.adjust(l_fit_padj$pvalue,method = "fdr")
+l_fit<-merge(l_fit,l_fit_padj[,c("padj","ID")],by="ID",all.x=TRUE)
+l_fit<-l_fit[order(l_fit$x),]
+
+dat$ID<-rownames(dat)
+dat<-merge(dat,l_fit[,c("x","y","upper","lower","Z","pvalue","padj","ID")],by="ID",all.x=TRUE)
+rownames(dat)<-dat$ID; dat$ID<-NULL
+
+if (thr_type=="fdr"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$padj<thr),"sig"]<-1
+}
+
+else if (thr_type=="pval"){
+  dat$sig<-rep(0,nrow(dat))
+  dat[which(dat$pvalue<thr),"sig"]<-1
+}
+
+dat[which(dat$log10_mean<1),"sig"]<-0
+
+
+if (return_all==FALSE){
+
+ggplot(dat)+geom_histogram(aes(x=pvalue))
+ggplot(dat)+geom_histogram(aes(x=padj))
+
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_overall_cv2),color=alpha("lightblue",0.2))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="black",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="black")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="black",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_overall_cv2"]),color=alpha("#66c2a5",0.7))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot1_filename,dpi=300,device="png")
+
+dat$density<-get_density(dat$log10_mean,dat$log10_overall_cv2, n = 100)
+print(ggplot(dat)+geom_point(aes(dat$log10_mean,dat$log10_overall_cv2,color=density))+ scale_color_viridis()+geom_line(aes(x=l_fit$x,y=l_fit$lower),color="pink",linetype="dashed")+geom_line(aes(x=l_fit$x,y=l_fit$y),color="pink")+geom_line(aes(x=l_fit$x,y=l_fit$upper),color="pink",linetype="dashed")+geom_point(data=subset(dat,sig==1),aes(dat[which(dat$sig==1),"log10_mean"],dat[which(dat$sig==1),"log10_overall_cv2"]),color=alpha("red",0.4))+ylab("log10 cv2")+xlab("log10 mean")+theme_classic())
+ggsave(filename = plot2_filename,dpi=300,device="png")
+
+}
+
+dat<-dat[order(dat$Z,decreasing=TRUE),]
+
+if (return_all==TRUE){return(dat)}else{return(dat[which(dat$sig==1),])}
+
+}
+
+
+```
+
+
+```{r load data}
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts.txt")
+colnames(ttg_DEseqnorm)
+ttg_DEseqnorm_25<-ttg_DEseqnorm[,c(25:29,31:42,44:48)]
+ttg_DEseqnorm_100<-ttg_DEseqnorm[,c(49:70)]
+
+
+```
+
+# cv2 analysis for 25th generation MALs
+
+```{r gen25}
+
+dat_25<-data.frame(mean=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=mean),
+                     sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=sd),
+                     overall_sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=overall_sd),
+                     tech_sd=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN=technical_sd),
+                     ID=rownames(ttg_DEseqnorm_25),
+                     max=apply(ttg_DEseqnorm_25,MARGIN = 1,FUN = max))
+dat_25<-dat_25[which(dat_25$mean>0),]
+
+#calculate log10cv2 values
+dat_25$log10_overall_cv2<-log10((dat_25$overall_sd/dat_25$mean)**2)
+dat_25$log10_tech_cv2<-log10((dat_25$tech_sd/dat_25$mean)**2)
+dat_25$log10_mean<-log10(dat_25$mean+1)
+dat_25$log10_cv2<-log10((dat_25$sd/dat_25$mean)**2)
+dat_25$ff<-(dat_25$sd**2)/dat_25$mean
+
+
+dat_25<-dat_25[order(dat_25$log10_mean,decreasing = FALSE),]
+
+#plot
+dat_25$density<-get_density(dat_25$log10_mean,dat_25$log10_overall_cv2, n = 100)
+ggplot(dat_25)+geom_point(aes(log10_mean,log10_overall_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 25, overall cv2")
+
+dat_25$density<-get_density(dat_25$log10_mean,dat_25$log10_tech_cv2, n = 100)
+ggplot(dat_25)+geom_point(aes(log10_mean,log10_tech_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 25, technical cv2")
+
+gen25_fdr0.1<-loess_fit_and_plotres(dat_25,"fdr",0.1,return_all = FALSE,"gen25_technoise_fit_fdr0.1.png","gen25_technoise_fit_fdr0.1_density.png",TRUE,"gen25_cv2_normality.pdf")
+
+nrow(gen25_fdr0.1)
+
+write.table(rownames(gen25_fdr0.1),file="gen_25_HV22Gs_fdr0.1.txt",quote=FALSE,row.names = FALSE)
+
+write.table(rownames(dat_25[which(dat_25$log10_mean>1),]),file="gen_25_HV22Gs_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+
+```
+
+# cv2 analysis for 100th generation MALs
+
+
+```{r gen 100 data}
+
+dat_100<-data.frame(mean=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=mean),
+                     sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=sd),
+                     overall_sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=overall_sd),
+                     tech_sd=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN=technical_sd),
+                     ID=rownames(ttg_DEseqnorm_100),
+                     max=apply(ttg_DEseqnorm_100,MARGIN = 1,FUN = max))
+dat_100<-dat_100[which(dat_100$mean>0),]
+
+#calculate log10cv2 values
+dat_100$log10_overall_cv2<-log10((dat_100$overall_sd/dat_100$mean)**2)
+dat_100$log10_tech_cv2<-log10((dat_100$tech_sd/dat_100$mean)**2)
+dat_100$log10_mean<-log10(dat_100$mean+1)
+dat_100$log10_cv2<-log10((dat_100$sd/dat_100$mean)**2)
+dat_100$ff<-(dat_100$sd**2)/dat_100$mean
+
+
+dat_100<-dat_100[order(dat_100$log10_mean,decreasing = FALSE),]
+
+
+#plot
+dat_100$density<-get_density(dat_100$log10_mean,dat_100$log10_overall_cv2, n = 100)
+ggplot(dat_100)+geom_point(aes(log10_mean,log10_overall_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 100, overall cv2")
+
+dat_100$density<-get_density(dat_100$log10_mean,dat_100$log10_tech_cv2, n = 100)
+ggplot(dat_100)+geom_point(aes(log10_mean,log10_tech_cv2,color=density))+ scale_color_viridis()+ylim(-3,2)+ggtitle("gen 100, technical cv2")
+
+gen100_fdr1eminus4<-loess_fit_and_plotres(dat_100,"fdr",1e-4,return_all = FALSE,"gen100_technoise_fit_fdr1Eminus4.png","gen100_technoise_fit_fdr1Eminus4_density.png",TRUE,"gen100_cv2_normality.pdf")
+
+nrow(gen100_fdr1eminus4)
+
+write.table(rownames(gen100_fdr1eminus4),file="gen_100_HV22Gs_fdr1e-4.txt",quote=FALSE,row.names = FALSE)
+
+write.table(rownames(dat_100[which(dat_100$log10_mean>1),]),file="gen_100_HV22Gs_BACKGROUND_LIST.txt",quote=FALSE,row.names = FALSE)
+
+
+```
+
+# Plot small RNA pathway gene sets in the same plots
+
+```{r plot small RNA pathway genes}
+
+gen25_noise_data<-loess_fit_and_plotres(dat_25,"fdr",0.05,return_all = TRUE,"none","none",FALSE,"gen25_cv2_normality.pdf")
+gen100_noise_data<-loess_fit_and_plotres(dat_100,"fdr",1e-4,return_all = TRUE,"none","none",FALSE,"gen100_cv2_normality.pdf")
+
+piRNA_targets<-read.table("../07_Gene_Sets/piRNA_targets_2fold"); piRNA_targets<-piRNA_targets$x
+piRNA_targets_4x<-read.table("../07_Gene_Sets/piRNA_targets_4fold"); piRNA_targets_4x<-piRNA_targets_4x$x
+CSR1_targets<-read.table("../07_Gene_Sets/CSR1_targets"); CSR1_targets<-CSR1_targets$x
+HRDE1_targets<-read.table("../07_Gene_Sets/WAGO9_targets"); HRDE1_targets<-HRDE1_targets$x
+WAGO1_targets<-read.table("../07_Gene_Sets/WAGO1_targets"); WAGO1_targets<-WAGO1_targets$x
+
+gen25_noise_data$piRNA<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1))
+gen25_noise_data[which(rownames(gen25_noise_data) %in% piRNA_targets),"piRNA"]<-1
+gen100_noise_data$piRNA<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1))
+gen100_noise_data[which(rownames(gen100_noise_data) %in% piRNA_targets),"piRNA"]<-1
+
+gen25_noise_data$CSR1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1))
+gen25_noise_data[which(rownames(gen25_noise_data) %in% CSR1_targets),"CSR1"]<-1
+gen100_noise_data$CSR1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1))
+gen100_noise_data[which(rownames(gen100_noise_data) %in% CSR1_targets),"CSR1"]<-1
+
+gen25_noise_data$HRDE1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1))
+gen25_noise_data[which(rownames(gen25_noise_data) %in% HRDE1_targets),"HRDE1"]<-1
+gen100_noise_data$HRDE1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1))
+gen100_noise_data[which(rownames(gen100_noise_data) %in% HRDE1_targets),"HRDE1"]<-1
+
+gen25_noise_data$WAGO1<-factor(rep(0,nrow(gen25_noise_data)),levels = c(0,1))
+gen25_noise_data[which(rownames(gen25_noise_data) %in% WAGO1_targets),"WAGO1"]<-1
+gen100_noise_data$WAGO1<-factor(rep(0,nrow(gen100_noise_data)),levels = c(0,1))
+gen100_noise_data[which(rownames(gen100_noise_data) %in% WAGO1_targets),"WAGO1"]<-1
+
+
+#plot gen 25 data
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=CSR1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_CSR1_targets.png",dpi=300,device="png")
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=HRDE1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_HRDE1_targets.png",dpi=300,device="png")
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=piRNA))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_piRNA_targets.png",dpi=300,device="png")
+
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=WAGO1))+
+  color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+  theme_classic()+
+  geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25_WAGO1_targets.png",dpi=300,device="png")
+
+
+boxplot(gen25_noise_data[which(gen25_noise_data$piRNA==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$HRDE1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$WAGO1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$CSR1==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+
+
+#plot gen 100 data
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=CSR1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("lightblue",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_all_genes.png",dpi=300,device="png")
+
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=CSR1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_CSR1_targets.png",dpi=300,device="png")
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=HRDE1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_HRDE1_targets.png",dpi=300,device="png")
+
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=piRNA))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_piRNA_targets.png",dpi=300,device="png")
+
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=WAGO1))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100_WAGO1_targets.png",dpi=300,device="png")
+
+
+boxplot(gen100_noise_data[which(gen100_noise_data$piRNA==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$HRDE1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$WAGO1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$CSR1==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+
+
+
+
+#Fano Factor with averaged data
+
+average_datasets<-function(df){
+  df_averaged<-data.frame(
+    a=(df[,1]+df[,2])/2,
+    b=(df[,3]+df[,4])/2,
+    c=(df[,5]+df[,6])/2,
+    d=(df[,7]+df[,8])/2,
+    f=(df[,9]+df[,10])/2,
+    g=(df[,11]+df[,12])/2,
+    h=(df[,13]+df[,14])/2,
+    i=(df[,15]+df[,16])/2,
+    j=(df[,17]+df[,18])/2,
+    k=(df[,19]+df[,20])/2,
+    l=(df[,21]+df[,22])/2)
+  
+  rownames(df_averaged)<-rownames(df)
+  return(df_averaged)
+}
+
+ttg_DEseqnorm_25_avg<-average_datasets(ttg_DEseqnorm_25)
+ttg_DEseqnorm_100_avg<-average_datasets(ttg_DEseqnorm_100)
+
+dat_25_avg<-data.frame(mean=apply(ttg_DEseqnorm_25_avg,MARGIN = 1,FUN=mean),
+                       sd=apply(ttg_DEseqnorm_25_avg,MARGIN = 1,FUN=sd))
+dat_25_avg$ff<-((dat_25_avg$sd)**2)/dat_25_avg$mean
+
+dat_100_avg<-data.frame(mean=apply(ttg_DEseqnorm_100_avg,MARGIN = 1,FUN=mean),
+                       sd=apply(ttg_DEseqnorm_100_avg,MARGIN = 1,FUN=sd))
+dat_100_avg$ff<-((dat_100_avg$sd)**2)/dat_100_avg$mean
+
+
+
+gen25_ffdata<-data.frame(ffs=c(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"],
+        dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_25_avg[which(rownames(dat_25_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_25_avg[which(rownames(dat_25_avg) %in% CSR1_targets),"ff"])))))
+gen25_ffdata$gene_class<-factor(gen25_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1"))
+ggplot(gen25_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  coord_cartesian(ylim=c(0,50))
+
+
+gen100_ffdata<-data.frame(ffs=c(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"],
+        dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"]),
+                         gene_class=factor(c(rep("piRNA",length(dat_100_avg[which(rownames(dat_100_avg) %in% piRNA_targets),"ff"])),
+                                      rep("HRDE-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% HRDE1_targets),"ff"])),
+                                      rep("WAGO-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% WAGO1_targets),"ff"])),
+                                      rep("CSR-1",length(dat_100_avg[which(rownames(dat_100_avg) %in% CSR1_targets),"ff"])))))
+gen100_ffdata$gene_class<-factor(gen100_ffdata$gene_class,levels = c("piRNA","HRDE-1","WAGO-1","CSR-1"))
+ggplot(gen100_ffdata)+
+  geom_boxplot(aes(y=ffs,x=gene_class))+
+  theme_classic()+
+  coord_cartesian(ylim=c(0,50))
+
+```
+
+# Relationship between epimutations and increased variability
+
+This analysis shows that epimutable genes have increased variability irrespective of being epimutated - to test this, we selected the genes called as epimutable EXCLUSIVELY in one set of samples (gen 25 or gen 100) then tested variability levels in the OTHER set of samples where these genes are not called as epimutated. These show increased variability as well. Indeed, the set of HV22Gs that we identify contains all the epimutations but is a larger set of genes.
+
+
+```{r noisy bc of epimutations or noisy independently}
+
+#epimutations UNIQUE to gen25 and gen100 datasets
+epimut_data<-read.table("../03_04_Figures1-2/MAplot_filtering_22Gs_gens25100_p1e-2.txt",header=TRUE)
+epimut_data<-epimut_data[which(epimut_data$padj<1e-4),]
+
+gen25_lines<-c("A25","B25","C25","D25","F25","G25","H25","I25","J25","K25","L25")
+gen100_lines<-c("A100","B100","C100","D100","F100","G100","H100","I100","J100","K100","L100")
+
+epimuts_gen25<-unique(epimut_data[which(epimut_data$line1 %in% gen25_lines & epimut_data$line2 %in% gen25_lines),"ID"])
+epimuts_gen100<-unique(epimut_data[which(epimut_data$line1 %in% gen100_lines & epimut_data$line2 %in% gen100_lines),"ID"])
+
+epimuts_gen25_unique<-epimuts_gen25[-which(epimuts_gen25 %in% epimuts_gen100)]
+epimuts_gen100_unique<-epimuts_gen100[-which(epimuts_gen100 %in% epimuts_gen25)]
+
+
+gen100_noise_data$epimuts_gen25_unique<-factor(rep(0,nrow(gen100_noise_data)),levels=c(0,1))
+gen100_noise_data$epimuts_gen25_unique[which(rownames(gen100_noise_data) %in% epimuts_gen25_unique)]<-1
+
+ggplot(gen100_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=epimuts_gen25_unique))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_100data_25thgen_epimuts.png",dpi=300,device="png")
+
+
+
+gen25_noise_data$epimuts_gen100_unique<-factor(rep(0,nrow(gen25_noise_data)),levels=c(0,1))
+gen25_noise_data$epimuts_gen100_unique[which(rownames(gen25_noise_data) %in% epimuts_gen100_unique)]<-1
+
+ggplot(gen25_noise_data)+geom_point(aes(x=log10_mean,y=log10_overall_cv2,color=epimuts_gen100_unique))+
+    color_palette(c(alpha("lightblue",0.2),alpha("red",0.5)))+
+    theme_classic()+
+    geom_line(aes(x=x,y=y))+geom_line(aes(x=x,y=lower),linetype="dashed")+geom_line(aes(x=x,y=upper),linetype="dashed")
+ggsave("gen_25data_100thgen_epimuts.png",dpi=300,device="png")
+
+
+boxplot(gen25_noise_data[which(gen25_noise_data$piRNA==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$HRDE1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$WAGO1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$CSR1==1),"Z"],
+        gen25_noise_data[which(gen25_noise_data$epimuts_gen100_unique==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","epimutations\tgeneration 100"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+
+
+boxplot(gen100_noise_data[which(gen100_noise_data$piRNA==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$HRDE1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$WAGO1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$CSR1==1),"Z"],
+        gen100_noise_data[which(gen100_noise_data$epimuts_gen25_unique==1),"Z"],
+        names=c("piRNA","HRDE-1","WAGO-1","CSR-1","epimutations\tgeneration 25"),outline=FALSE,las=2,cex=0.5,ylab="Z-score")
+
+```
+
+# Relationship between 22G-RNA abundance, mRNA abundance and 22G-RNA variability
+
+```{r add mRNA abundance data from our datasets}
+
+mRNA_DEseqnorm<-read.table("../02_Normalised_counts/RNAseq_DEseqnorm.txt")
+mRNA_abundance_25<-data.frame(mean=apply(mRNA_DEseqnorm[,25:35],MARGIN=1,FUN=mean));colnames(mRNA_abundance_25)<-"mRNA_mean"
+gen25_noise_data<-merge(gen25_noise_data,mRNA_abundance_25,by=0,all.x=TRUE); rownames(gen25_noise_data)<-gen25_noise_data$Row.names ; gen25_noise_data$Row.names<-NULL
+
+mRNA_abundance_100<-data.frame(mean=apply(mRNA_DEseqnorm[,37:47],MARGIN=1,FUN=mean));colnames(mRNA_abundance_100)<-"mRNA_mean"
+gen100_noise_data<-merge(gen100_noise_data,mRNA_abundance_100,by=0,all.x=TRUE); rownames(gen100_noise_data)<-gen100_noise_data$Row.names ; gen100_noise_data$Row.names<-NULL
+
+gen25_noise_data[is.na(gen25_noise_data)]<-0
+gen100_noise_data[is.na(gen100_noise_data)]<-0
+
+
+#gen25
+gen25_noise_data$HV22Gs<-rep(0,nrow(gen25_noise_data))
+gen25_noise_data[which(gen25_noise_data$padj<0.1 ),"HV22Gs"]<-1
+gen25_noise_data$log2_mRNA_mean<-log2(gen25_noise_data$mRNA_mean+1)
+
+write.table(gen25_noise_data,file="gen25_noise_data.txt",quote=FALSE)
+
+
+#boxplots for all subsets of small RNA pathways, HVGs vs non-HVGs, mRNA abundance
+ggplot(gen25_noise_data[which(gen25_noise_data$mean>20),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("all genes")
+ggsave("mRNA_abundance_gen25_HV22Gs_vs_rest_allgenes.pdf",dpi=150)
+
+ggplot(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$piRNA==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("piRNA targets")
+ggsave("mRNA_abundance_gen25_HV22Gs_vs_rest_piRNAtargets.pdf",dpi=150)
+
+ggplot(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$WAGO1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("WAGO-1 targets")
+ggsave("mRNA_abundance_gen25_HV22Gs_vs_rest_WAGO1targets.pdf",dpi=150)
+
+ggplot(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$HRDE1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("HRDE-1 targets")
+ggsave("mRNA_abundance_gen25_HV22Gs_vs_rest_HRDE1targets.pdf",dpi=150)
+
+ggplot(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$CSR1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("CSR-1 targets")
+ggsave("mRNA_abundance_gen25_HV22Gs_vs_rest_CSR1targets.pdf",dpi=150)
+
+
+library(ggpubr)
+
+#prepare df to plot all together
+dat_for_boxplot<-data.frame(
+  log2_mRNA_abundance=c(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$WAGO1==1),"log2_mRNA_mean"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$CSR1==1),"log2_mRNA_mean"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$HRDE1==1),"log2_mRNA_mean"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$piRNA==1),"log2_mRNA_mean"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20),"log2_mRNA_mean"]),
+  gene_classes=c(rep("WAGO-1",nrow(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$WAGO1==1),])),
+                 rep("CSR-1",nrow(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$CSR1==1),])),
+                 rep("HRDE-1",nrow(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$HRDE1==1),])),
+                 rep("piRNA",nrow(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$piRNA==1),])),
+                 rep("all genes",nrow(gen25_noise_data[which(gen25_noise_data$mean>20),]))),
+  HV22Gs=factor(c(gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$WAGO1==1),"HV22Gs"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$CSR1==1),"HV22Gs"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$HRDE1==1),"HV22Gs"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20 & gen25_noise_data$piRNA==1),"HV22Gs"],
+                        gen25_noise_data[which(gen25_noise_data$mean>20),"HV22Gs"])))
+
+
+ggplot(dat_for_boxplot)+
+  geom_boxplot(aes(y = log2_mRNA_abundance, x = gene_classes, fill = HV22Gs))+
+  theme_classic()+
+  fill_palette(palette = c("#43a2ca","#e0f3db"))+
+  stat_compare_means(data=dat_for_boxplot,aes(y=log2_mRNA_abundance,x=gene_classes,group=HV22Gs),method = "wilcox.test",paired=FALSE)
+ggsave("mRNA_abundance_gen25_HV22Gs_all_gene_classes.pdf",dpi=150)
+
+
+
+#gen 100
+gen100_noise_data$HV22Gs<-rep(0,nrow(gen100_noise_data))
+gen100_noise_data[which(gen100_noise_data$padj<1e-4 ),"HV22Gs"]<-1
+gen100_noise_data$log2_mRNA_mean<-log2(gen100_noise_data$mRNA_mean+1)
+
+write.table(gen100_noise_data,file="gen100_noise_data.txt",quote=FALSE)
+
+#boxplots for all subsets of small RNA pathways, HVGs vs non-HVGs, mRNA abundance
+ggplot(gen100_noise_data[which(gen100_noise_data$mean>20),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("all genes")
+ggsave("mRNA_abundance_gen100_HV22Gs_vs_rest_allgenes.pdf",dpi=150)
+
+ggplot(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$piRNA==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("piRNA targets")
+ggsave("mRNA_abundance_gen100_HV22Gs_vs_rest_piRNAtargets.pdf",dpi=150)
+
+ggplot(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$WAGO1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("WAGO-1 targets")
+ggsave("mRNA_abundance_gen100_HV22Gs_vs_rest_WAGO1targets.pdf",dpi=150)
+
+ggplot(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$HRDE1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("HRDE-1 targets")
+ggsave("mRNA_abundance_gen100_HV22Gs_vs_rest_HRDE1targets.pdf",dpi=150)
+
+ggplot(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$CSR1==1),])+geom_boxplot(aes(y=log2_mRNA_mean,x=factor(HV22Gs)))+
+  theme_classic()+ylim(0,20)+
+  ylab("log2 mean normalised mRNA counts")+
+  ggtitle("CSR-1 targets")
+ggsave("mRNA_abundance_gen100_HV22Gs_vs_rest_CSR1targets.pdf",dpi=150)
+
+
+library(ggpubr)
+
+#prepare df to plot all together
+dat_for_boxplot<-data.frame(
+  log2_mRNA_abundance=c(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$WAGO1==1),"log2_mRNA_mean"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$CSR1==1),"log2_mRNA_mean"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$HRDE1==1),"log2_mRNA_mean"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$piRNA==1),"log2_mRNA_mean"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20),"log2_mRNA_mean"]),
+  gene_classes=c(rep("WAGO-1",nrow(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$WAGO1==1),])),
+                 rep("CSR-1",nrow(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$CSR1==1),])),
+                 rep("HRDE-1",nrow(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$HRDE1==1),])),
+                 rep("piRNA",nrow(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$piRNA==1),])),
+                 rep("all genes",nrow(gen100_noise_data[which(gen100_noise_data$mean>20),]))),
+  HV22Gs=factor(c(gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$WAGO1==1),"HV22Gs"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$CSR1==1),"HV22Gs"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$HRDE1==1),"HV22Gs"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20 & gen100_noise_data$piRNA==1),"HV22Gs"],
+                        gen100_noise_data[which(gen100_noise_data$mean>20),"HV22Gs"])))
+
+
+ggplot(dat_for_boxplot)+
+  geom_boxplot(aes(y = log2_mRNA_abundance, x = gene_classes, fill = HV22Gs))+
+  theme_classic()+
+  fill_palette(palette = c("#43a2ca","#e0f3db"))+
+  stat_compare_means(data=dat_for_boxplot,aes(y=log2_mRNA_abundance,x=gene_classes,group=HV22Gs),method = "wilcox.test",paired=FALSE)
+ggsave("mRNA_abundance_gen100_HV22Gs_all_gene_classes.pdf",dpi=150)
+
+
+```
+
+# Analysis of the correlates of increased variability in 22G-RNA levels
+
+We apply a mean 22G-RNA level threshold of 20cpm.
+
+```{r correlates of noise}
+
+gene_features<-read.table(file="../07_Gene_Sets/gene_features_cel.txt",header=TRUE,sep=" ")
+nrow(gen100_noise_data)
+gen100_noise_data$ID<-rownames(gen100_noise_data)
+gene_features<-merge(gene_features,gen100_noise_data,by.x="cosmid_ID_iso",by.y="ID",all.y=TRUE)
+
+gene_features$si_to_mRNA_ratio<-log2(gene_features$mean+1)-log2(gene_features$mRNA_mean+1)
+gene_features$log2_mRNA_mean<-log2(gene_features$mRNA_mean+1)
+gene_features$log2_mean<-log2(gene_features$mean+1)
+
+fit<-lm(data = gene_features[which(gene_features$mean>20),],
+        formula = log2(ff)~log2_mean+log2_mRNA_mean+CSR1+HRDE1+WAGO1+piRNA+active+regulated+border+X+H3K9me2+H3K9me3+PATCs)
+summary(fit)
+
+fit<-lm(data = gene_features[which(gene_features$mean>20),],
+        formula = Z~log2_mean+log2_mRNA_mean+CSR1+HRDE1+WAGO1+piRNA+active+regulated+border+X+H3K9me2+H3K9me3+PATCs)
+
+fit<-lm(data = gene_features[which(gene_features$mean>20),],
+        formula = Z~piRNA)
+
+summary(fit)
+
+```
+
+
+```{r abundance thr}
+
+gene_features_20<-gene_features[which(gene_features$mean>20),]
+
+plot(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+cor(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+
+plot(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+cor(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+
+fit<-lm(gene_features_20,formula=log2(ff)~log2_mean+log2_mRNA_mean)
+summary(fit)
+
+
+```
+
+
+```{r subset small RNA targets}
+
+#piRNA, WAGO1 and HRDE1 targets
+gene_features_20<-gene_features[which(gene_features$mean>20 & (gene_features$piRNA==1 | gene_features$WAGO1==1 | gene_features$HRDE1==1)),]
+
+plot(log2(gene_features_20$ff),gene_features_20$log2_mean)
+plot(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+plot(log2(gene_features_20$ff),gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+cor(log2(gene_features_20$ff),gene_features_20$log2_mean)
+cor(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+cor(log2(gene_features_20$ff),gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+plot(gene_features_20$Z,gene_features_20$log2_mean)
+plot(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+plot(gene_features_20$Z,gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+cor(gene_features_20$Z,gene_features_20$log2_mean)
+cor(gene_features_20$Z,gene_features_20$log2_mRNA_mean); cor.test(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+cor(gene_features_20$Z,gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+fit<-lm(gene_features_20,formula=Z~log2_mean+log2_mRNA_mean)
+summary(fit)
+
+bin_and_boxplot<-function(df,nbins,bin_method){
+  df<-df[order(df$log2_mRNA_mean),]
+  df$bins<-bin(df$log2_mRNA_mean,method=bin_method,nbins = nbins)
+  print(ggplot(df)+
+          geom_boxplot(aes(y=Z,group=bins))+
+          theme_classic()+
+          ylim(0,10)+
+          xlab("increasing mRNA abundance bins")+
+          ylab("noise Z-score"))
+}
+
+bin_and_boxplot(gene_features_20,15,"length")
+ggsave("Zscore_in_mRNAbins_piRNA_WAGO1_HRDE1_targets_intervalbins.pdf",dpi=150)
+
+bin_and_boxplot(gene_features_20,15,"content")
+ggsave("Zscore_in_mRNAbins_piRNA_WAGO1_HRDE1_targets_equallysizedbins.png",dpi=300,device="png")
+
+ggplot(gene_features_20)+
+  geom_point(aes(y=log2_mRNA_mean,x=Z),color=alpha("#66c2a5",0.7))+
+  theme_classic()+
+  ylab("log2 mRNA abundance")+
+  xlab("noise Z-score")
+ggsave("Zscore_vs_abundance_correlation_piRNA_WAGO1_HRDE1_targets.png",dpi=300,device="png")
+
+#CSR1 targets
+gene_features_20<-gene_features[which(gene_features$mean>20 & gene_features$CSR1==1),]
+
+plot(log2(gene_features_20$ff),gene_features_20$log2_mean)
+plot(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+plot(log2(gene_features_20$ff),gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+cor(log2(gene_features_20$ff),gene_features_20$log2_mean)
+cor(log2(gene_features_20$ff),gene_features_20$log2_mRNA_mean)
+cor(log2(gene_features_20$ff),gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+plot(gene_features_20$Z,gene_features_20$log2_mean)
+plot(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+plot(gene_features_20$Z,gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+cor(gene_features_20$Z,gene_features_20$log2_mean)
+cor(gene_features_20$Z,gene_features_20$log2_mRNA_mean); cor.test(gene_features_20$Z,gene_features_20$log2_mRNA_mean)
+cor(gene_features_20$Z,gene_features_20$log2_mean-gene_features_20$log2_mRNA_mean)
+
+fit<-lm(gene_features_20,formula=Z~log2_mean+log2_mRNA_mean)
+summary(fit)
+
+bin_and_boxplot(gene_features_20,15,"length")
+ggsave("Zscore_in_mRNAbins_CSR1_targets_intervalbins.pdf",dpi=150)
+
+bin_and_boxplot(gene_features_20,15,"content")
+ggsave("Zscore_in_mRNAbins_CSR1_targets_equallysizedbins.pdf",dpi=150)
+
+ggplot(gene_features_20)+
+  geom_point(aes(x=Z,y=log2_mRNA_mean),color=alpha("#fc8d62",0.7))+
+  theme_classic()+
+  ylab("log2 mRNA abundance")+xlab("noise Z-score")
+ggsave("Zscore_vs_abundance_correlation_CSR1_targets.png",dpi=300,device="png")
+
+```
+
+
+
+```{r zscore and ff for genes with different evo conservation}
+
+orthogroups<-read.table("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets/c_elegans_genes_and_ortholognumber_by_species.form.txt")
+
+cel_index<-8
+caeno_index<-c(6,7,9,10)
+rest_of_clade_V_index<-c(1,11,13,14,17,20,25)
+clades_IV_III_II_I_index<-c(2,3,4,5,12,15,16,18,19,21,22,23,24,26,27,28,29,30)
+
+classify_genes_by_conservation<-function(row){
+  if (sum(row[clades_IV_III_II_I_index])>0) {return("conserved outside clade V")}
+  else if (sum(row[clades_IV_III_II_I_index])==0 & sum(row[rest_of_clade_V_index])>0){return("conserved in clade V outside Caenorhabditis")}
+  else if (sum(row[rest_of_clade_V_index])==0 & sum(row[caeno_index])>0){return("conserved in Caenorhabditis")}
+  else if (sum(row[caeno_index])==0 & sum(row[cel_index])>0){return("C. elegans specific")}
+}
+
+conservation_data<-data.frame(cons=apply(orthogroups,MARGIN=1,FUN=classify_genes_by_conservation))
+conservation_data$cosmid_ID<-rownames(conservation_data)
+conservation_data<-conservation_data[which(rownames(conservation_data) %in% rownames(ttg_DEseqnorm)),]
+
+table(conservation_data$cons)
+
+
+gene_features_20_evoinfo<-merge(gene_features_20,conservation_data,by="cosmid_ID")
+ggplot(gene_features_20_evoinfo)+geom_boxplot(aes(x=cons,y=Z),outlier.shape=NA)+coord_cartesian(ylim=c(0,5))
+
+```
+
+
+
+
+
+

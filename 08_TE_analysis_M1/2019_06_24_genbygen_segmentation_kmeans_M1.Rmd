@@ -1,0 +1,296 @@
+---
+title: "2019_06_24_genbygen_segmentation_analysis.Rmd"
+author: "Toni Beltran"
+date: "24/06/2019"
+output: html_document
+---
+
+
+```{r load data}
+
+library(gplots)
+library(RColorBrewer)
+library(ggplot2)
+library(depmixS4)
+library(DESeq2)
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/08_TE_analysis_M1/")
+
+ttg_DEseqnorm<-read.table("22G_counts/final_counts_table/all_counts_M1_deseqnorm_averaged.txt")
+ttg_MAplot_data<-read.table("MAplot_analysis/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+
+summary_stats_A<-data.frame(mean=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = min))
+
+summary_stats_B<-data.frame(mean=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = min))
+
+summary_stats_AB<-data.frame(mean=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=mean),
+                             min=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=min))
+
+```
+
+```{r DEseq}
+#DEseq to remove batch variation (early vs late, plus B1-B4 samples)
+
+library(DESeq2)
+ttg_A_rawcounts<-read.table("22G_counts/final_counts_table/all_counts_M1.txt"); ttg_A_rawcounts<-ttg_A_rawcounts[,50:61]
+ttg_B_rawcounts<-read.table("22G_counts/final_counts_table/all_counts_M1.txt"); ttg_B_rawcounts<-ttg_B_rawcounts[,62:73]
+ttg_AB_rawcounts<-merge(ttg_A_rawcounts,ttg_B_rawcounts,by=0); rownames(ttg_AB_rawcounts)<-ttg_AB_rawcounts$Row.names; ttg_AB_rawcounts$Row.names<-NULL
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(rep(c(rep(1,7),rep(2,5)),2))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+ggplot(as.data.frame(res))+geom_histogram(aes(x=pvalue))
+ggplot(as.data.frame(res))+geom_histogram(aes(x=padj))
+
+removegenes_lastfive<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+
+cds<-DESeqDataSetFromMatrix(countData = ttg_AB_rawcounts,
+                            colData = data.frame(line=colnames(ttg_AB_rawcounts),condition=as.factor(c(rep(1,12),2,rep(1,3),2,rep(1,7)))),
+                            design= ~condition)
+dds<-DESeq(cds)
+res<-results(dds)
+res<-res[order(res$padj,decreasing = FALSE),]
+
+ggplot(as.data.frame(res))+geom_histogram(aes(x=pvalue))
+ggplot(as.data.frame(res))+geom_histogram(aes(x=padj))
+
+removegenes_b1_b5<-rownames(res[which(res$padj<0.2 & abs(res$log2FoldChange)>1),])
+
+removegenes<-union(removegenes_lastfive,removegenes_b1_b5)
+length(removegenes)
+
+epimutable_genes_genbygen<-unique(ttg_MAplot_data$ID)
+epimutable_genes_genbygen<-epimutable_genes_genbygen[-which(epimutable_genes_genbygen %in% removegenes)]
+length(unique(epimutable_genes_genbygen))
+
+ttg_DEseqnorm_epimutable_genes<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% epimutable_genes_genbygen),]
+
+write.table(unique(epimutable_genes_genbygen),file="epimutable_genes_genbygen.txt")
+write.table(unique(removegenes),file="removegenes.txt")
+
+```
+
+
+```{r kmeans segmentation}
+
+library(nnet)
+
+kmeans_row<-function(vector){  
+  kmc<-kmeans(x = as.numeric(vector),centers=2)
+  high<-kmc$cluster[which.is.max(vector)]
+  if (high==2){return(kmc$cluster)
+  }else{return(abs(kmc$cluster-3))}
+}
+
+kmeans_clusters_byrow_all<-matrix(0,nrow=nrow(ttg_DEseqnorm_epimutable_genes),ncol = 47)
+rownames(kmeans_clusters_byrow_all)<-rownames(ttg_DEseqnorm_epimutable_genes)
+for (gene in rownames(ttg_DEseqnorm_epimutable_genes)){
+      kmeans_clusters_byrow_all[gene,]<-kmeans_row(ttg_DEseqnorm_epimutable_genes[gene,])
+}
+
+colnames(kmeans_clusters_byrow_all)<-colnames(ttg_DEseqnorm)
+
+pdf("epimutations_lineageA.pdf")
+heatmap.2(as.matrix(kmeans_clusters_byrow_all[,1:12]),col = colorRampPalette(c("#67a9cf","#de2d26")),Colv=FALSE,trace="none",dendrogram = "none",
+          main="lineage A")
+dev.off()
+
+pdf("epimutations_lineageB.pdf")
+heatmap.2(as.matrix(kmeans_clusters_byrow_all[,13:24]),col = colorRampPalette(c("#67a9cf","#de2d26")),Colv=FALSE,trace="none",dendrogram = "none",
+          main="lineage B")
+dev.off()
+
+heatmap.2(as.matrix(kmeans_clusters_byrow_all),col = colorRampPalette(c("#67a9cf","#de2d26")),Colv=FALSE,trace="none",dendrogram = "none",
+          main="all")
+
+write.table(kmeans_clusters_byrow_all,file="kmeans-segmentation_p1e-4_epimutable_genes",
+            quote=FALSE)
+
+```
+
+
+```{r retrieve epimutation data from state traces}
+
+epimuts_from_kmeans_trace<-function(vect,gene){
+  trace<-rle(vect)
+  epimut_number<-length(trace$lengths)
+  completeness<-rep(1,epimut_number); completeness[1]<-0; completeness[epimut_number]<-0; 
+  return(data.frame(ID=rep(gene,epimut_number),up_or_down=trace$values,duration=trace$lengths,completeness=completeness,stgen=c(-1,cumsum(trace$lengths)[1:(epimut_number-1)])))
+}
+
+
+epimut_duration_kmeans_A<-data.frame()
+epimut_duration_kmeans_B<-data.frame()
+
+for (gene in rownames(kmeans_clusters_byrow_all)){
+  if (sum(kmeans_clusters_byrow_all[gene,1:12])>12 & sum(kmeans_clusters_byrow_all[gene,1:12])<24){
+  epimut_duration_kmeans_A<-rbind(epimut_duration_kmeans_A,epimuts_from_kmeans_trace(kmeans_clusters_byrow_all[gene,1:12],gene))}
+  if (sum(kmeans_clusters_byrow_all[gene,13:24])>12 & sum(kmeans_clusters_byrow_all[gene,13:24])<24){
+  epimut_duration_kmeans_B<-rbind(epimut_duration_kmeans_B,epimuts_from_kmeans_trace(kmeans_clusters_byrow_all[gene,13:24],gene))
+  }
+}
+
+epimut_duration_kmeans_A<-epimut_duration_kmeans_A[-which(epimut_duration_kmeans_A$stgen==-1),]
+epimut_duration_kmeans_B<-epimut_duration_kmeans_B[-which(epimut_duration_kmeans_B$stgen==-1),]
+
+#correction to incorporate missing generation 7
+#assumes no change from generation 6 to 7 (overestimates duration)
+epimut_duration_kmeans_A$stgen_corrected<-epimut_duration_kmeans_A$stgen
+epimut_duration_kmeans_A$duration_corrected<-epimut_duration_kmeans_A$duration
+for (i in seq(nrow(epimut_duration_kmeans_A))){
+  if (epimut_duration_kmeans_A[i,"stgen"]>6){
+  epimut_duration_kmeans_A[i,"stgen_corrected"]<-epimut_duration_kmeans_A[i,"stgen_corrected"]+1
+  }
+  if ((epimut_duration_kmeans_A[i,"stgen"]+epimut_duration_kmeans_A[i,"duration"])>6 & epimut_duration_kmeans_A[i,"stgen"]<7){
+  epimut_duration_kmeans_A[i,"duration_corrected"]<-epimut_duration_kmeans_A[i,"duration_corrected"]+1
+  }
+}
+
+
+epimut_duration_kmeans_B$stgen_corrected<-epimut_duration_kmeans_B$stgen
+epimut_duration_kmeans_B$duration_corrected<-epimut_duration_kmeans_B$duration
+for (i in seq(nrow(epimut_duration_kmeans_B))){
+  if (epimut_duration_kmeans_B[i,"stgen"]>6){
+  epimut_duration_kmeans_B[i,"stgen_corrected"]<-epimut_duration_kmeans_B[i,"stgen_corrected"]+1
+  }
+  if ((epimut_duration_kmeans_B[i,"stgen"]+epimut_duration_kmeans_B[i,"duration"])>6 & epimut_duration_kmeans_B[i,"stgen"]<7){
+  epimut_duration_kmeans_B[i,"duration_corrected"]<-epimut_duration_kmeans_B[i,"duration_corrected"]+1
+  }
+}
+
+epimut_duration_kmeans_A$duration<-epimut_duration_kmeans_A$duration_corrected
+epimut_duration_kmeans_B$duration<-epimut_duration_kmeans_B$duration_corrected
+epimut_duration_kmeans_A$stgen<-epimut_duration_kmeans_A$stgen_corrected
+epimut_duration_kmeans_B$stgen<-epimut_duration_kmeans_B$stgen_corrected
+
+epimut_duration_kmeans_A$stgen_corrected<-NULL; epimut_duration_kmeans_B$stgen_corrected<-NULL
+epimut_duration_kmeans_A$duration_corrected<-NULL; epimut_duration_kmeans_B$duration_corrected<-NULL
+
+write.table(epimut_duration_kmeans_A,file="epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4.txt",quote=FALSE)
+write.table(epimut_duration_kmeans_B,file="epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4.txt",quote=FALSE)
+
+nrow(rbind(epimut_duration_kmeans_A,epimut_duration_kmeans_B))
+
+```
+
+
+```{r plotting the data, lineage A}
+
+##all epimutations
+table(epimut_duration_kmeans_A$duration)
+table(epimut_duration_kmeans_A$up_or_down)
+table(epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$completeness==0),"duration"])
+table(epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$completeness==1),"duration"])
+
+A_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(A_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage A, kmeans joint AB-gens25-100 segmentation")+
+  theme_classic()
+ggsave("epimut_duration_distribution_linA.pdf",dpi="retina")
+
+
+
+```
+
+
+```{r plotting the data, lineage B}
+
+##all epimutations
+table(epimut_duration_kmeans_B$duration)
+table(epimut_duration_kmeans_B$up_or_down)
+table(epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$completeness==0),"duration"])
+table(epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$completeness==1),"duration"])
+
+B_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(B_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("lineage B, kmeans joint AB-gens25-100 segmentation")+
+  theme_classic()
+ggsave("epimut_duration_distribution_linB.pdf",dpi="retina")
+
+
+
+```
+
+```{r plotting the data, both lineages combined}
+
+epimut_duration_kmeans_both<-rbind(epimut_duration_kmeans_A,epimut_duration_kmeans_B)
+
+##all epimutations
+table(epimut_duration_kmeans_both$duration)
+table(epimut_duration_kmeans_both$up_or_down)
+table(epimut_duration_kmeans_both[which(epimut_duration_kmeans_both$completeness==0),"duration"])
+table(epimut_duration_kmeans_both[which(epimut_duration_kmeans_both$completeness==1),"duration"])
+
+both_data_for_barplot<-data.frame(duration=rep(seq(1,11),2),
+                               count=c(table(factor(epimut_duration_kmeans_both[which(epimut_duration_kmeans_both$completeness==1),"duration"],levels=c(1:11))),
+                                       table(factor(epimut_duration_kmeans_both[which(epimut_duration_kmeans_both$completeness==0),"duration"],levels=c(1:11)))),
+                               completeness=c(rep("complete",11),rep("incomplete",11)))
+
+# Grouped
+ggplot(both_data_for_barplot, aes(fill=completeness, y=count, x=duration)) + 
+    geom_bar(position="dodge", stat="identity") + ggtitle("both lineages, kmeans joint AB-gens25-100 segmentation")+
+  theme_classic()
+ggsave("epimut_duration_distribution_bothlineages.pdf",dpi="retina")
+
+
+
+
+```
+
+
+
+```{r survival probabilities}
+
+epimut_duration_kmeans_A$censored<-epimut_duration_kmeans_A$completeness
+epimut_duration_kmeans_B$censored<-epimut_duration_kmeans_B$completeness
+
+library(survival)
+library(survminer)
+
+surv_A <- Surv(time = epimut_duration_kmeans_A$duration, event = epimut_duration_kmeans_A$censored)
+fitA <- survfit(surv_A ~1)
+summary(fitA)
+ggsurvplot(fitA, data=surv_A,pval = TRUE)
+
+
+surv_B <- Surv(time = epimut_duration_kmeans_B$duration, event = epimut_duration_kmeans_B$censored)
+fitB <- survfit(surv_B ~1)
+summary(fitB)
+ggsurvplot(fitB, data=surv_B,pval = TRUE)
+
+epimut_duration_kmeans_A$lineage<-rep("A",nrow(epimut_duration_kmeans_A))
+epimut_duration_kmeans_B$lineage<-rep("B",nrow(epimut_duration_kmeans_B))
+
+duration_both<-rbind(epimut_duration_kmeans_A,epimut_duration_kmeans_B)
+surv_both<-Surv(time=duration_both$duration,event = duration_both$censored)
+fit_both<-survfit(surv_both~lineage,data=duration_both)
+summary(fit_both)
+ggsurvplot(fit_both, data=duration_both,conf.int = TRUE,pval = TRUE)
+ggsave("survival_curves_bylineage_notsignificant.pdf",dpi="retina")
+ggsurvplot(fit_both, data=duration_both,fun = "cumhaz",conf.int = TRUE,pval = TRUE)
+
+
+```
+
+
+
+
+

@@ -1,0 +1,573 @@
+---
+title: "2019_04_19_epimutations_gens25_100_analyses_M1"
+author: "Toni Beltran"
+date: "21/06/2019"
+output: html_document
+---
+
+Epimutable genes were selected as MAplot calls with padj<1e-4.
+
+```{r load maplot data}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES_Dryad/08_TE_analysis_M1/")
+
+library(MASS)
+library(ggplot2)
+library(viridis)
+library(msir)
+library(gplots)
+theme_set(theme_bw(base_size = 16))
+
+ttg_DEseqnorm<-read.table("22G_counts/final_counts_table/all_counts_M1_deseqnorm_averaged.txt"); ttg_DEseqnorm_gens25_100<-ttg_DEseqnorm[,25:47]
+ttg_MAplot_data<-read.table("MAplot_analysis/MAplot_filtering_22Gs_gens25100_p1e-2.txt",header=TRUE)
+
+ttg_MAplot_data_p1Eminus4<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+epimutable_genes<-unique(ttg_MAplot_data_p1Eminus4$ID)
+length(epimutable_genes)
+
+write.table(epimutable_genes,file="epimutable_genes_gen25-100.txt",quote = FALSE,col.names = FALSE,row.names = FALSE)
+
+```
+
+Correlation analysis on the subset of epimutable genes showed decreasing correlations with distance in generations.
+This analysis reveals C100, I100, K100 and L100 as outliers - lines showing much lower correlation with the rest of samples. The source of this is difference is unclear, when growing the lines they did not seem to be sick compared to the rest. Including those in the correlation analysis makes the correlations scale with the distance in generations better, but this is only driven by these 4.
+
+When removing these 4 samples, the difference in correlation is significant up the the 50-75 generation comparison, and it stabilises beyond that, consistent with the lack of long-term epigenetic inheritance overall.
+
+
+```{r correlation analysis}
+
+#load matrix with the number of generations separating each pair of samples
+numgenerations<-read.table("../03_04_Figures1-2/numgenerations_matrix.txt")
+
+
+#function to plot the correlation coefficients as a function of the distance between samples
+cor_analysis<-function(cpm_data,maplot_calls,heatmapfilename,boxplotfilename,dotplotfilename){
+  
+  filt_cpm_data<-cpm_data[which(rownames(cpm_data) %in% maplot_calls$ID),]
+  cor_matrix<-cor(log2(filt_cpm_data+1))
+  
+  numchanges_matrix<-matrix(nrow=nrow(cor_matrix),ncol=ncol(cor_matrix))
+  rownames(numchanges_matrix)<-rownames(cor_matrix); colnames(numchanges_matrix)<-colnames(cor_matrix)
+  for (row in rownames(numchanges_matrix)){
+    for (col in colnames(numchanges_matrix)){
+      numchanges_matrix[row,col]<-nrow(maplot_calls[which(maplot_calls$line1==row & maplot_calls$line2==col),])
+    }
+  }
+  
+  tit<-"633 genes, p<1e-4"
+  
+  numgen_reordered<-numgenerations[rownames(cor_matrix),colnames(cor_matrix)]
+  
+  heatmap.2(cor_matrix,trace="none",dendrogram = "none",Rowv = FALSE,Colv = FALSE,main = tit)
+  
+  pdf(heatmapfilename)
+  heatmap.2(cor_matrix,trace="none",dendrogram = "none",Rowv = FALSE,Colv = FALSE,main = tit)
+  dev.off()
+  
+  numgen_vector<-numgen_reordered[upper.tri(numgen_reordered)]
+  cor_vector<-cor_matrix[upper.tri(cor_matrix)]
+  numchanges_vector<-numchanges_matrix[upper.tri(numchanges_matrix)]
+  
+  numgen_df<-data.frame(ng_vect=numgen_vector,
+                        cor_vect=cor_vector,
+                        nch_vect=numchanges_vector)
+  numgen_df$ng_vect<-as.factor(numgen_df$ng_vect)
+
+  cors_boxplots <- ggplot(numgen_df, aes(x=ng_vect, y=cor_vect,fill=ng_vect))+ ggtitle(tit) + xlab("generations separating lines") + ylab("correlation coefficient of DE 22G set")+geom_boxplot()+theme_classic()+scale_fill_brewer(aesthetics =c("fill","color"),palette = "GnBu")
+  ggsave(plot=cors_boxplots,filename = boxplotfilename,dpi="retina")
+  print(cors_boxplots)
+  
+    cors_dotplots <- ggplot(numgen_df,aes(x=ng_vect, y=cor_vect))+geom_dotplot(binaxis='y', stackdir='center',aes(fill=factor(ng_vect),color=factor(ng_vect)))+theme_classic()+ ggtitle(tit) + xlab("generations separating lines") + ylab("correlation coefficient of DE 22G set")+scale_fill_brewer(aesthetics =c("fill","color"),palette = "GnBu")+stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,
+                 geom = "crossbar", width = 0.5,color="black")
+  print(cors_dotplots)
+  ggsave(plot=cors_dotplots,filename = dotplotfilename,dpi="retina")
+
+  
+  cors_dotplots <- ggplot(numgen_df,aes(x=ng_vect, y=cor_vect))+geom_boxplot()+geom_dotplot(binaxis='y', stackdir='center',aes(fill=factor(ng_vect),color=factor(ng_vect)))+theme_classic()+ ggtitle(tit) + xlab("generations separating lines") + ylab("correlation coefficient of DE 22G set")+scale_fill_brewer(aesthetics =c("fill","color"),palette = "GnBu")
+  print(cors_dotplots)
+  
+  cors_dotplots <- ggplot(numgen_df,aes(x=ng_vect, y=cor_vect))+geom_boxplot(aes(fill=factor(ng_vect)))+geom_dotplot(binaxis='y', stackdir='center',fill="lightgray",color="lightgray")+theme_classic()+ ggtitle(tit) + xlab("generations separating lines") + ylab("correlation coefficient of DE 22G set")+scale_fill_brewer(aesthetics = c("fill"),palette = "GnBu")
+  print(cors_dotplots)
+
+
+  #numchanges_boxplots <- ggplot(numgen_df, aes(x=numgen_vector, y=numchanges_vector))+ ggtitle(tit) + xlab("generations separating lines") + ylab("number of DE22Gs")+geom_boxplot()
+  #print(numchanges_boxplots)
+
+  numgen_df$ng_vect<-as.numeric(as.character(numgen_df$ng_vect))
+  
+  print(wilcox.test(numgen_df[which(numgen_df$ng_vect==25),"cor_vect"],
+              numgen_df[which(numgen_df$ng_vect==50),"cor_vect"]))
+  
+  print(wilcox.test(numgen_df[which(numgen_df$ng_vect==50),"cor_vect"],
+              numgen_df[which(numgen_df$ng_vect==75),"cor_vect"]))
+  
+  print(wilcox.test(numgen_df[which(numgen_df$ng_vect==75),"cor_vect"],
+              numgen_df[which(numgen_df$ng_vect==100),"cor_vect"]))
+  
+  print(wilcox.test(numgen_df[which(numgen_df$ng_vect==100),"cor_vect"],
+              numgen_df[which(numgen_df$ng_vect==125),"cor_vect"]))
+  
+  print(wilcox.test(numgen_df[which(numgen_df$ng_vect==125),"cor_vect"],
+              numgen_df[which(numgen_df$ng_vect==200),"cor_vect"]))
+  
+}
+
+
+#including outlier lines C100,I100,K100,L100
+cor_analysis(ttg_DEseqnorm_gens25_100,ttg_MAplot_data_p1Eminus4,
+             heatmapfilename="correlation_heatmap_withCIKL.pdf",
+             boxplotfilename="correlation_boxplots_withCIKL.pdf",
+             dotplotfilename = "correlation_dotplots_withCIKL.pdf")
+
+#removing outlier lines C100,I100,K100,L100
+cor_analysis(ttg_DEseqnorm_gens25_100[,-c(15,20,22,23)],ttg_MAplot_data_p1Eminus4,
+             heatmapfilename="correlation_heatmap_withoutCIKL.pdf",
+             boxplotfilename="correlation_boxplots_withoutCIKL.pdf",
+             dotplotfilename = "correlation_dotplots_withoutCIKL.pdf")
+
+```
+
+For the set of epimutable genes, we used unsupervised k-means clustering to define 22G expression levels as low (1) or high (2) for all samples in the dataset. Then using this data, we calculated the total number of changes that we see between samples.
+
+When we include the outlier samples, we see that there is a significant difference between the observed number of changes within the 25 generation samples and the 100th generation samples, in other words, the 100th generation samples seem to be more divergent in their 22G expression states.
+
+```{r k-means segmentation}
+
+ttg_DEseqnorm_epimutable_genes<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% epimutable_genes),]
+
+kmeans_row<-function(vector){  
+  kmc<-kmeans(x = as.numeric(vector),centers=2)
+  high<-kmc$cluster[which.is.max(vector)]
+  if (high==2){return(kmc$cluster)
+  }else{return(abs(kmc$cluster-3))}
+}
+
+library(nnet)
+
+ttg_segmentation_epimutable_genes<-matrix(0,nrow=nrow(ttg_DEseqnorm_epimutable_genes),ncol = 47)
+colnames(ttg_segmentation_epimutable_genes)<-colnames(ttg_DEseqnorm_epimutable_genes)
+rownames(ttg_segmentation_epimutable_genes)<-rownames(ttg_DEseqnorm_epimutable_genes)
+
+for (gene in rownames(ttg_DEseqnorm_epimutable_genes)){
+      ttg_segmentation_epimutable_genes[gene,]<-kmeans_row(ttg_DEseqnorm_epimutable_genes[gene,])
+}
+
+heatmap.2(as.matrix(ttg_segmentation_epimutable_genes[,25:47]),col = colorRampPalette(c("#67a9cf","#de2d26")),Colv=FALSE,trace="none",dendrogram = "none")
+
+heatmap.2(cor(as.matrix(ttg_segmentation_epimutable_genes[,25:47])),Colv=FALSE,trace="none",dendrogram = "none")
+
+
+diffs<-c()
+line1<-c()
+line2<-c()
+distances<-c()
+
+for (l1 in colnames(ttg_segmentation_epimutable_genes[,25:47])){
+  for (l2 in colnames(ttg_segmentation_epimutable_genes[,25:47])){
+    
+  diffs<-c(diffs,sum(abs(ttg_segmentation_epimutable_genes[,l1]-ttg_segmentation_epimutable_genes[,l2])))
+  line1<-c(line1,l1); line2<-c(line2,l2)
+  
+  if (l1=="PMA"){l1<-"P0"}
+  if (l2=="PMA"){l2<-"P0"}
+        
+  lineage_1<-substr(l1,start = 1,stop = 1)
+  gen_1<-as.numeric(substr(l1,start=2,stop=nchar(l1)))
+  lineage_2<-substr(l2,start = 1,stop = 1)
+  gen_2<-as.numeric(substr(l2,start=2,stop=nchar(l2)))
+        
+  if (lineage_1!=lineage_2){
+        distance=abs(gen_1+gen_2)
+        }
+  else if (lineage_1==lineage_2){
+        distance=abs(gen_1-gen_2)
+        }
+  distances<-c(distances,distance)
+  
+  if (l1=="P0"){l1<-"PMA"}
+  if (l2=="P0"){l2<-"PMA"}
+
+}}
+
+
+numchanges_df<-data.frame(num_changes=diffs,line1=line1,line2=line2,distance=distances)
+ggplot(numchanges_df)+geom_boxplot(aes(y=num_changes,x=factor(distance),fill=factor(distance)))+theme_classic()+scale_fill_brewer(aesthetics =c("fill"),palette = "GnBu")
+ggsave("number_of_changes_boxplot_gens25_100_withCIKL.pdf",dpi="retina")
+ggplot(numchanges_df)+geom_boxplot(aes(y=num_changes/nrow(ttg_segmentation_epimutable_genes),x=factor(distance)))
+ggsave("proportion_of_changes_boxplot_gens25_100_withCIKL.pdf",dpi="retina")
+
+
+numchanges_df_50_200<-numchanges_df[which(numchanges_df$distance==50 | numchanges_df$distance==200),]
+ggplot(numchanges_df_50_200)+geom_boxplot(aes(y=num_changes,x=factor(distance),fill=factor(distance)))+ scale_fill_manual(values=c("#66c2a5", "#8da0cb"))+theme_classic()
+ggsave("number_of_changes_boxplot_withinbatch_withCIKL.pdf",dpi="retina")
+
+ggplot(numchanges_df_50_200,aes(x=factor(distance),y=num_changes,fill=factor(distance),color=factor(distance)))+geom_dotplot(binaxis = "y", stackdir = "center")+ stat_summary(fun.y=median, geom="point", shape=19,size=5,col="black")+scale_fill_manual(values = c("#a8ddb5","#43a2ca"),aesthetics = c("fill","color"))
+ggsave("number_of_changes_dotplot_withinbatch_withCIKL.pdf",dpi="retina")
+
+#testing differences in the number of changes
+wilcox.test(numchanges_df[which(numchanges_df$distance==50),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==200),"num_changes"])
+
+wilcox.test(numchanges_df[which(numchanges_df$distance==25),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==50),"num_changes"])
+wilcox.test(numchanges_df[which(numchanges_df$distance==50),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==75),"num_changes"])
+wilcox.test(numchanges_df[which(numchanges_df$distance==75),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==100),"num_changes"])
+wilcox.test(numchanges_df[which(numchanges_df$distance==100),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==125),"num_changes"])
+wilcox.test(numchanges_df[which(numchanges_df$distance==125),"num_changes"],
+            numchanges_df[which(numchanges_df$distance==200),"num_changes"])
+
+
+
+
+```
+
+However, when we do the same analysis removing the 100th generation sample outliers, the amount of observed differences between 25th and 100th generation samples is not significantly different.
+Now it seems that the 75, 100 and 125 distances are higher than the rest, however this is an artefact since these three are between-batch comparisons (comparing the 25th and 100th generation samples that were grown and sequenced on separate experiments). So it makes more sense here to compare within batches (distance 50 and distance 200). In this case there is no difference in the number of changes observed between lines.
+
+```{r k-means segmentation without CIKL}
+
+CIKL<-c("C100","I100","K100","L100")
+ttg_MAplot_data_p1Eminus4_noCIKL<-ttg_MAplot_data_p1Eminus4[which(!(ttg_MAplot_data_p1Eminus4$line1 %in% CIKL) &
+                                                                  !(ttg_MAplot_data_p1Eminus4$line2 %in% CIKL)),]
+epimutable_genes_noCIKL<-unique(ttg_MAplot_data_p1Eminus4_noCIKL$ID)
+length(epimutable_genes_noCIKL)
+
+ttg_DEseqnorm_epimutable_genes_noCIKL<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% epimutable_genes_noCIKL),-c(39,44,46,47)]
+
+kmeans_row<-function(vector){  
+  kmc<-kmeans(x = as.numeric(vector),centers=2)
+  high<-kmc$cluster[which.is.max(vector)]
+  if (high==2){return(kmc$cluster)
+  }else{return(abs(kmc$cluster-3))}
+}
+
+library(nnet)
+
+ttg_segmentation_epimutable_genes_noCIKL<-matrix(0,nrow=nrow(ttg_DEseqnorm_epimutable_genes_noCIKL),ncol = 43)
+colnames(ttg_segmentation_epimutable_genes_noCIKL)<-colnames(ttg_DEseqnorm_epimutable_genes_noCIKL)
+rownames(ttg_segmentation_epimutable_genes_noCIKL)<-rownames(ttg_DEseqnorm_epimutable_genes_noCIKL)
+
+for (gene in rownames(ttg_DEseqnorm_epimutable_genes_noCIKL)){
+      ttg_segmentation_epimutable_genes_noCIKL[gene,]<-kmeans_row(ttg_DEseqnorm_epimutable_genes_noCIKL[gene,])
+}
+
+heatmap.2(as.matrix(ttg_segmentation_epimutable_genes_noCIKL[,25:43]),col = colorRampPalette(c("#67a9cf","#de2d26")),Colv=FALSE,trace="none",dendrogram = "none")
+
+heatmap.2(cor(as.matrix(ttg_segmentation_epimutable_genes_noCIKL[,25:43])),Colv=FALSE,trace="none",dendrogram = "none")
+
+
+diffs<-c()
+line1<-c()
+line2<-c()
+distances<-c()
+
+for (l1 in colnames(ttg_segmentation_epimutable_genes_noCIKL[,25:43])){
+  for (l2 in colnames(ttg_segmentation_epimutable_genes_noCIKL[,25:43])){
+    
+  diffs<-c(diffs,sum(abs(ttg_segmentation_epimutable_genes_noCIKL[,l1]-ttg_segmentation_epimutable_genes_noCIKL[,l2])))
+  line1<-c(line1,l1); line2<-c(line2,l2)
+  
+  if (l1=="PMA"){l1<-"P0"}
+  if (l2=="PMA"){l2<-"P0"}
+        
+  lineage_1<-substr(l1,start = 1,stop = 1)
+  gen_1<-as.numeric(substr(l1,start=2,stop=nchar(l1)))
+  lineage_2<-substr(l2,start = 1,stop = 1)
+  gen_2<-as.numeric(substr(l2,start=2,stop=nchar(l2)))
+        
+  if (lineage_1!=lineage_2){
+        distance=abs(gen_1+gen_2)
+        }
+  else if (lineage_1==lineage_2){
+        distance=abs(gen_1-gen_2)
+        }
+  distances<-c(distances,distance)
+  
+  if (l1=="P0"){l1<-"PMA"}
+  if (l2=="P0"){l2<-"PMA"}
+
+}}
+
+
+numchanges_df_noCIKL<-data.frame(num_changes=diffs,line1=line1,line2=line2,distance=distances)
+ggplot(numchanges_df_noCIKL)+geom_boxplot(aes(y=num_changes,x=factor(distance),fill=factor(distance)))+scale_fill_brewer(aesthetics =c("fill"),palette = "GnBu")+theme_classic()
+ggsave("number_of_changes_boxplot_gens25_100_withoutCIKL.pdf",dpi="retina")
+ggplot(numchanges_df_noCIKL)+geom_boxplot(aes(y=num_changes/nrow(ttg_segmentation_epimutable_genes_noCIKL),x=factor(distance)))
+ggsave("proportion_of_changes_boxplot_gens25_100_withoutCIKL.pdf",dpi="retina")
+
+numchanges_df_noCIKL_50_200<-numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==50 | numchanges_df_noCIKL$distance==200),]
+ggplot(numchanges_df_noCIKL_50_200)+geom_boxplot(aes(y=num_changes,x=factor(distance),fill=factor(distance)),width=0.5)+scale_fill_manual(values=c("#66c2a5", "#8da0cb"))+theme_classic()
+ggsave("number_of_changes_boxplot_withinbatch_withoutCIKL.pdf",dpi="retina")
+
+ggplot(numchanges_df_noCIKL_50_200,aes(x=factor(distance),y=num_changes,fill=factor(distance),color=factor(distance)))+geom_dotplot(binaxis = "y", stackdir = "center")+ stat_summary(fun.y=median, geom="point", shape=19,size=5,col="black")+scale_fill_manual(values = c("#a8ddb5","#43a2ca"),aesthetics = c("fill","color"))+
+  theme_classic()
+ggsave("number_of_changes_dotplot_withinbatch_withoutCIKL.pdf",dpi="retina")
+
+
+#testing differences in the number of changes
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==50),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==200),"num_changes"])
+
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==25),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==50),"num_changes"])
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==50),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==75),"num_changes"])
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==75),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==100),"num_changes"])
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==100),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==125),"num_changes"])
+wilcox.test(numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==125),"num_changes"],
+            numchanges_df_noCIKL[which(numchanges_df_noCIKL$distance==200),"num_changes"])
+
+
+dist_states<-data.frame(state_avg=apply(ttg_segmentation_epimutable_genes_noCIKL[,25:43],MARGIN=1,FUN=mean))
+ggplot(dist_states)+geom_histogram(aes(x=state_avg),breaks=seq(1,2,1/10))
+
+dist_states<-data.frame(state_avg=apply(ttg_segmentation_epimutable_genes[,25:47],MARGIN=1,FUN=mean))
+ggplot(dist_states)+geom_histogram(aes(x=state_avg),breaks=seq(1,2,1/10))
+
+```
+
+```{r function to plot counts by lineage}
+
+plot_sRNA_levels<-function(gene,pval,padj,savestring){
+  ordered_data_points<-as.numeric(ttg_DEseqnorm_epimutable_genes[gene,c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data<-data.frame(ttg_counts=ordered_data_points,line=colnames(ttg_DEseqnorm_epimutable_genes)[c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data$sample<-factor(data$line,levels=colnames(ttg_DEseqnorm_epimutable_genes)[c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data$generation<-c("PeMA",rep(c("25","100"),11)); data$generation<-factor(data$generation,levels=c("PeMA","25","100"))
+  data$lineage<-c("PeMA","A","A","B","B","C","C","D","D","F","F","G","G","H","H","I","I","J","J","K","K","L","L")
+  data$lineage<-factor(data$lineage,levels=c("PeMA","A","B","C","D","F","G","H","I","J","K","L"))
+  print(ggplot(data)+geom_point(aes(y=ttg_counts,x=lineage,color=generation),size=3)+theme_classic()+ylab("normalised 22G counts")+xlab("lineage")+ggtitle(paste(paste(paste(paste(gene,"p",sep=","),pval,sep="="),"padj",sep=","),padj,sep="="))
+  + scale_color_manual(values=c("#fc8d62", "#66c2a5", "#8da0cb")))
+  if (savestring=="no"){
+    return()}else{
+  ggsave(filename = paste(paste(paste("example",savestring,sep=""),gene,sep="_"),"pdf",sep="."),dpi="retina")}
+}
+
+
+plot_sRNA_levels("F23B12.4c.2","","","kmeans_clustering_example")
+plot_sRNA_levels("C28A5.6","","","kmeans_clustering_example")
+
+
+plot_sRNA_levels("C55C3.7",1,1,"no")
+ttg_segmentation_epimutable_genes["C55C3.7",]
+
+plot_sRNA_levels("H14A12.5",1,1,"no")
+ttg_segmentation_epimutable_genes["H14A12.5",]
+
+```
+
+
+Having defined the high and low 22G level states, we can test on a gene-by-gene basis whether the states in the 25th and 100th generation samples are more similar than you would expect. To test this, I randomise the order of the 1-2 assignations 100000 times, and calculate how many of these would result in an equal or greater number of matches between 25 and 100 generation states than observed.
+
+Also, to incorporate the quantitative range of the data in the analysis, I did a similar analysis calculating the within-lineage variation vs overall variation in random matches of 25 and 100 generation samples.
+
+Both analysis converge on the conclusion that there is no evidence for long-term inheritance in our dataset.
+
+
+
+```{r randomisation test for epigenetic inheritance}
+
+#filter out genes with all 1s or 2s in the 25th/100th gen samples
+
+test_epigen_inheritance<-function(row){
+  num_matches<-11-sum(abs(row[25:35]-row[37:47]))
+  rand_matches_distribution<-rep(0,100000)
+  for (i in seq(100000)){
+    rand_25<-sample(row[25:35]); rand_100<-sample(row[37:47])
+    rand_matches<-11-sum(abs(rand_25-rand_100))
+    rand_matches_distribution[i]<-rand_matches
+  }
+  return(c(num_matches,length(which(rand_matches_distribution>=num_matches))/length(rand_matches_distribution)))
+}
+
+
+test_df<-data.frame(t(apply(ttg_segmentation_epimutable_genes,MARGIN=1,FUN=test_epigen_inheritance)))
+colnames(test_df)<-c("num_matches","pval")
+test_df$padj<-p.adjust(test_df$pval,method="fdr")
+ggplot(test_df)+geom_histogram(aes(x=pval),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_kmeans_withCILK.pdf")
+ggplot(test_df)+geom_histogram(aes(x=padj),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_kmeans_withCILK_padj.pdf")
+
+
+ordered_test_df<-test_df[order(test_df$pval,decreasing = FALSE),]
+ordered_test_df[1:10,]
+
+for (gene in rownames(ordered_test_df[1:10,])){
+  plot_sRNA_levels(gene,ordered_test_df[gene,"pval"],ordered_test_df[gene,"padj"],
+                   savestring = "epistates_test_CILK_epistates_test_top10")
+}
+
+
+test_epigen_inheritance_variance<-function(row){
+  num_matches<-sum((row[25:35]-row[37:47])**2)/11
+  rand_matches_distribution<-rep(0,100000)
+  for (i in seq(100000)){
+    rand_25<-sample(row[25:35]); rand_100<-sample(row[37:47])
+    rand_variance<-sum((rand_25-rand_100)**2)/11
+    rand_matches_distribution[i]<-rand_variance
+  }
+  return(c(num_matches,length(which(rand_matches_distribution<=num_matches))/length(rand_matches_distribution)))
+}
+
+test_variance_df<-data.frame(t(apply(ttg_DEseqnorm_epimutable_genes,MARGIN=1,FUN=test_epigen_inheritance_variance)))
+
+colnames(test_variance_df)<-c("num_matches","pval")
+test_variance_df$padj<-p.adjust(test_variance_df$pval,method="fdr")
+ggplot(test_variance_df)+geom_histogram(aes(x=pval),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_variance_withCILK.pdf")
+ggplot(test_variance_df)+geom_histogram(aes(x=padj),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_variance_withCILK_padj.pdf")
+
+ordered_test_variance_df<-test_variance_df[order(test_variance_df$pval,decreasing = FALSE),]
+ordered_test_variance_df[1:10,]
+
+for (gene in rownames(ordered_test_variance_df[1:10,])){
+  plot_sRNA_levels(gene,ordered_test_variance_df[gene,"pval"],ordered_test_variance_df[gene,"padj"],
+                   savestring = "variance_test_CILK_variance_test_top10")
+}
+
+```
+
+Same analysis after removing the CILK samples.
+
+```{r randomisation test for epigenetic inheritance, no CILK}
+
+#filter out genes with all 1s or 2s in the 25th/100th gen samples
+
+colnames(ttg_segmentation_epimutable_genes)[c(25,26,28:31,33,37,38,40:43,45)]
+
+test_epigen_inheritance<-function(row){
+  num_matches<-11-sum(abs(row[c(25,26,28:31,33)]-row[c(37,38,40:43,45)]))
+  rand_matches_distribution<-rep(0,100000)
+  for (i in seq(100000)){
+    rand_25<-sample(row[c(25,26,28:31,33)]); rand_100<-sample(row[c(37,38,40:43,45)])
+    rand_matches<-11-sum(abs(rand_25-rand_100))
+    rand_matches_distribution[i]<-rand_matches
+  }
+  return(c(num_matches,length(which(rand_matches_distribution>=num_matches))/length(rand_matches_distribution)))
+}
+
+test_df_noCILK<-data.frame(t(apply(ttg_segmentation_epimutable_genes,MARGIN=1,FUN=test_epigen_inheritance)))
+colnames(test_df_noCILK)<-c("num_matches","pval")
+test_df_noCILK$padj<-p.adjust(test_df_noCILK$pval,method="fdr")
+ggplot(test_df_noCILK)+geom_histogram(aes(x=pval),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_kmeans_withoutCILK.pdf")
+ggplot(test_df_noCILK)+geom_histogram(aes(x=padj),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_kmeans_withoutCILK_padj.pdf")
+
+
+ordered_test_df_noCILK<-test_df_noCILK[order(test_df_noCILK$pval,decreasing = FALSE),]
+ordered_test_df_noCILK[1:10,]
+
+for (gene in rownames(ordered_test_df_noCILK[1:10,])){
+  plot_sRNA_levels(gene,ordered_test_df_noCILK[gene,"pval"],ordered_test_df_noCILK[gene,"padj"],
+                   savestring = "epistates_test_noCILK_top10")
+}
+
+
+
+test_epigen_inheritance_variance<-function(row){
+  num_matches<-sum((row[c(25,26,28:31,33)]-row[c(37,38,40:43,45)])**2)/11
+  rand_matches_distribution<-rep(0,100000)
+  for (i in seq(100000)){
+    rand_25<-sample(row[c(25,26,28:31,33)]); rand_100<-sample(row[c(37,38,40:43,45)])
+    rand_variance<-sum((rand_25-rand_100)**2)/11
+    rand_matches_distribution[i]<-rand_variance
+  }
+  return(c(num_matches,length(which(rand_matches_distribution<=num_matches))/length(rand_matches_distribution)))
+}
+
+test_variance_df_noCILK<-data.frame(t(apply(ttg_DEseqnorm_epimutable_genes,MARGIN=1,FUN=test_epigen_inheritance_variance)))
+
+colnames(test_variance_df_noCILK)<-c("num_matches","pval")
+test_variance_df_noCILK$padj<-p.adjust(test_variance_df_noCILK$pval,method="fdr")
+ggplot(test_variance_df_noCILK)+geom_histogram(aes(x=pval),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_variance_withoutCILK.pdf")
+ggplot(test_variance_df_noCILK)+geom_histogram(aes(x=padj),breaks=seq(0,1,1/30))
+ggsave("epigenetic_inheritance_test_variance_withoutCILK_padj.pdf")
+
+ordered_test_variance_df_noCILK<-test_variance_df_noCILK[order(test_variance_df_noCILK$pval,decreasing = FALSE),]
+ordered_test_variance_df_noCILK[1:10,]
+
+for (gene in rownames(ordered_test_variance_df_noCILK[1:10,])){
+  plot_sRNA_levels(gene,ordered_test_variance_df_noCILK[gene,"pval"],ordered_test_variance_df_noCILK[gene,"padj"],
+                   savestring = "variance_test_noCILK_top10")
+}
+
+```
+
+
+```{r kmeans segmentation heatmap, reordered}
+
+pdf("kmeans_segmentation_25_100gens_withCIKL.pdf")
+heatmap.2(as.matrix(ttg_segmentation_epimutable_genes[,c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)]),col = colorRampPalette(c("#67a9cf","#de2d26"))(100),Colv=FALSE,trace="none",dendrogram = "none")
+dev.off()
+
+pdf("kmeans_segmentation_25_100gens_withoutCIKL.pdf")
+heatmap.2(as.matrix(ttg_segmentation_epimutable_genes_noCIKL[,c(36,25,37,26,38,28,39,29,40,30,41,31,42,33,43)]),col = colorRampPalette(c("#67a9cf","#de2d26"))(100),Colv=FALSE,trace="none",dendrogram = "none")
+dev.off()
+
+write.table(ttg_segmentation_epimutable_genes,file="k-means_segmentation_epimutable_genes.txt")
+
+```
+
+```{r plot sRNA levels for supplementary figure}
+
+
+
+plot_sRNA_levels<-function(gene,pval,padj,N,savestring){
+  ordered_data_points<-as.numeric(ttg_DEseqnorm_epimutable_genes[gene,c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data<-data.frame(ttg_counts=ordered_data_points,line=colnames(ttg_DEseqnorm_epimutable_genes)[c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data$sample<-factor(data$line,levels=colnames(ttg_DEseqnorm_epimutable_genes)[c(36,25,37,26,38,27,39,28,40,29,41,30,42,31,43,32,44,33,45,34,46,35,47)])
+  data$generation<-c("PeMA",rep(c("25","100"),11)); data$generation<-factor(data$generation,levels=c("PeMA","25","100"))
+  data$lineage<-c("PeMA","A","A","B","B","C","C","D","D","F","F","G","G","H","H","I","I","J","J","K","K","L","L")
+  data$lineage<-factor(data$lineage,levels=c("PeMA","A","B","C","D","F","G","H","I","J","K","L"))
+  print(ggplot(data)+geom_point(aes(y=ttg_counts,x=lineage,color=generation),size=3)+theme_classic()+ylab("normalised 22G counts")+xlab("lineage")+ggtitle(paste(paste(paste(paste(paste(paste(gene,"p variance test",sep=","),pval,sep="="),"p epistates test",sep=","),padj,sep="="),"number of matches",sep=""),N,sep="="))
+  + scale_color_manual(values=c("#fc8d62", "#66c2a5", "#8da0cb")))
+  if (savestring=="no"){
+    return()}else{
+  ggsave(filename = paste(paste(paste("example",savestring,sep=""),gene,sep="_"),"pdf",sep="."),dpi="retina")}
+}
+
+
+#plot_sRNA_levels("F52C9.1.2",0.07446,0.08984,11,"plots_for_suppfig2/")
+#plot_sRNA_levels("Y116F11A.1",0.02376,0.02414,10,"plots_for_suppfig2/")
+#plot_sRNA_levels("K10D2.8",0.00589,0.18263,10,"plots_for_suppfig2/")
+#plot_sRNA_levels("C27D8.2",0.00624,0.09163,11,"plots_for_suppfig2/")
+
+ttg_MAplot_data_p1Eminus4[which(ttg_MAplot_data_p1Eminus4$line2=="PMA" & ttg_MAplot_data_p1Eminus4$fc<0),]
+
+
+```
+
+
+
+```{r pvalue distributions for TEs vs rest of genes}
+
+
+TEs<-read.table("TE_cov0.8_all_txs.txt"); TEs<-TEs$V2
+
+pdf("epi_states_test_pvaluedist_TEs_vs_restofgenes.pdf")
+boxplot(test_df[which(rownames(test_df) %in% TEs),"pval"],test_df[-which(rownames(test_df) %in% TEs),"pval"],
+        names=c("TEs and repeats","rest of genes"),ylab="epi-states test p-value")
+dev.off()
+
+pdf("variance_test_pvaluedist_TEs_vs_restofgenes.pdf")
+boxplot(test_variance_df[which(rownames(test_variance_df) %in% TEs),"pval"],test_variance_df[-which(rownames(test_variance_df) %in% TEs),"pval"],
+        names=c("TEs and repeats","rest of genes"),ylab="variance test p-value")
+dev.off()
+
+
+
+
+```
+
+
+
+

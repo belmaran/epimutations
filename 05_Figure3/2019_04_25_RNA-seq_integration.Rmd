@@ -1,0 +1,754 @@
+---
+title: "2019_04_15_RNA-seq integration"
+author: "Toni Beltran"
+date: "15/04/2019"
+output: html_document
+---
+
+```{r load data}
+
+library(gplots)
+library(RColorBrewer)
+library(ggplot2)
+library(depmixS4)
+library(DESeq2)
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/05_Figure3/")
+
+ttg_DEseqnorm<-read.table("../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+ttg_MAplot_data<-read.table("../03_Figure1/MAplot_filtering_22Gs_genbygen_p1e-2.txt",header=TRUE)
+ttg_MAplot_data<-ttg_MAplot_data[which(ttg_MAplot_data$padj<1e-4),]
+
+
+RNAseq_DEseqnorm<-read.table("../02_Normalised_counts/RNAseq_DEseqnorm.txt")
+
+summary_stats_A<-data.frame(mean=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,1:12],MARGIN=1,FUN = min))
+
+summary_stats_B<-data.frame(mean=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = mean),
+                            min=apply(ttg_DEseqnorm[,13:24],MARGIN=1,FUN = min))
+
+summary_stats_AB<-data.frame(mean=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=mean),
+                             min=apply(ttg_DEseqnorm[,1:24],MARGIN = 1,FUN=min))
+
+summary_stats_all<-data.frame(mean=apply(ttg_DEseqnorm,MARGIN = 1,FUN=mean),
+                             min=apply(ttg_DEseqnorm,MARGIN = 1,FUN=min))
+
+kmeans_clusters_byrow_all<-read.table("kmeans-segmentation_p1e-4_epimutable_genes")
+epimutable_genes_genbygen<-rownames(kmeans_clusters_byrow_all)
+
+
+```
+
+# Testing the effect of epimutations on mRNA levels
+
+## Wilcoxon rank sum test on the RNA-seq counts of samples with high and low small RNAs (lineage A and B samples)
+
+```{r wilcox test}
+
+wilcox_pvalues<-vector()
+log2_foldchanges_wilcox<-vector()
+ups_mRNA<-vector()
+downs_mRNA<-vector()
+
+wilcox_pvalues_ttgs<-vector()
+log2_foldchanges_ttgs<-vector()
+ups_22Gs<-vector()
+downs_22Gs<-vector()
+genes<-vector()
+
+kmeans_clusters_byrow_all<-kmeans_clusters_byrow_all[-which(apply(kmeans_clusters_byrow_all[,1:24],MARGIN=1,FUN=sum)==24),]
+
+for (gene in rownames(kmeans_clusters_byrow_all)){
+  if (gene %in% rownames(RNAseq_DEseqnorm)){
+  rnaseq<-as.numeric(RNAseq_DEseqnorm[gene,1:24])
+  ones<-rnaseq[which(kmeans_clusters_byrow_all[gene,1:24]==1)]
+  twos<-rnaseq[which(kmeans_clusters_byrow_all[gene,1:24]==2)]
+  test<-wilcox.test(as.numeric(ones),as.numeric(twos))
+  wilcox_pvalues<-c(wilcox_pvalues,test$p.value)
+  genes<-c(genes,gene)
+  logfc<-log2(mean(as.numeric(twos))+1)-log2(mean(as.numeric(ones))+1)
+  log2_foldchanges_wilcox<-c(log2_foldchanges_wilcox,logfc)
+  ups_mRNA<-c(ups_mRNA,mean(as.numeric(twos)))
+  downs_mRNA<-c(downs_mRNA,mean(as.numeric(ones)))
+  
+  ttg<-ttg_DEseqnorm[gene,1:24]
+  ttg_ones<-ttg[which(kmeans_clusters_byrow_all[gene,1:24]==1)]
+  ttg_twos<-ttg[which(kmeans_clusters_byrow_all[gene,1:24]==2)]
+  test<-wilcox.test(as.numeric(ttg_ones),as.numeric(ttg_twos))
+  wilcox_pvalues_ttgs<-c(wilcox_pvalues_ttgs,test$p.value)
+  logfc<-log2(mean(as.numeric(ttg_twos))+1)-log2(mean(as.numeric(ttg_ones))+1)
+  log2_foldchanges_ttgs<-c(log2_foldchanges_ttgs,logfc)
+  ups_22Gs<-c(ups_22Gs,mean(as.numeric(ttg_twos)))
+  downs_22Gs<-c(downs_22Gs,mean(as.numeric(ttg_ones)))
+  
+}}
+
+
+wilcoxon_data<-data.frame(pvals=wilcox_pvalues,logfc=log2_foldchanges_wilcox,
+                          pvals_22G=wilcox_pvalues_ttgs,logfc_22G=log2_foldchanges_ttgs,
+                          ups_22Gs=ups_22Gs,downs_22Gs=downs_22Gs,ups_mRNA=ups_mRNA,downs_mRNA=downs_mRNA)
+rownames(wilcoxon_data)<-genes
+wilcoxon_data$padj<-p.adjust(wilcoxon_data$pvals,method = "fdr")
+wilcoxon_data$log10_pvals<-(-log10(wilcoxon_data$pvals))
+wilcoxon_data$padj_22G<-p.adjust(wilcoxon_data$pvals_22G,method = "fdr")
+wilcoxon_data$log10_pvals_22G<-(-log10(wilcoxon_data$pvals_22G))
+
+#mRNA data
+ggplot(wilcoxon_data)+geom_histogram(aes(x=pvals))
+ggplot(wilcoxon_data)+geom_histogram(aes(x=padj))
+
+length(which(wilcoxon_data$pvals<0.1))
+length(which(wilcoxon_data$pvals<0.1))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc>0))
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc<0))
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc<0))/nrow(wilcoxon_data)
+
+length(which(wilcoxon_data$padj<0.2))
+length(which(wilcoxon_data$padj<0.2))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc>0))
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc<0))
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc<0))/nrow(wilcoxon_data)
+
+
+#22G data
+ggplot(wilcoxon_data)+geom_histogram(aes(x=pvals_22G))
+ggplot(wilcoxon_data)+geom_histogram(aes(x=padj_22G))
+
+
+length(which(wilcoxon_data$pvals_22G<0.1))
+length(which(wilcoxon_data$pvals_22G<0.1))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G>0))
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G<0))
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G<0))/nrow(wilcoxon_data)
+
+length(which(wilcoxon_data$padj_22G<0.2))
+length(which(wilcoxon_data$padj_22G<0.2))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G>0))
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G<0))
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G<0))/nrow(wilcoxon_data)
+
+wilcoxon_data$sig<-rep(0,nrow(wilcoxon_data))
+wilcoxon_data[wilcoxon_data$pvals<=0.1,"sig"]<-1; wilcoxon_data$sig<-as.factor(wilcoxon_data$sig)
+
+ggplot(wilcoxon_data)+geom_point(aes(x=logfc,y=logfc_22G,color=sig))+xlab("log2 fold change in mRNA levels")+ylab("log2 fold change in 22Gs")
+
+```
+
+
+## Wilcoxon rank sum test on the RNA-seq counts of samples with high and low small RNAs (all samples, including the consecutive generation experiment and the 25th and 100th generation experiment)
+
+
+```{r wilcox test - all samples including PMA-gen25-gen100}
+
+kmeans_clusters_byrow_all_genbygen<-read.table("kmeans-segmentation_p1e-4_epimutable_genes")
+kmeans_clusters_byrow_all_gens25_100<-read.table("../03_Figure1/k-means_segmentation_epimutable_genes.txt")
+epi_genes_all<-union(rownames(kmeans_clusters_byrow_all_genbygen),rownames(kmeans_clusters_byrow_all_gens25_100))
+
+kmeans_clusters_both_experiments<-data.frame(rbind(kmeans_clusters_byrow_all_genbygen,kmeans_clusters_byrow_all_gens25_100))
+kmeans_clusters_both_experiments<-kmeans_clusters_both_experiments[which(rownames(kmeans_clusters_both_experiments) %in% epi_genes_all),]
+
+
+wilcox_pvalues<-vector()
+log2_foldchanges_wilcox<-vector()
+ups_mRNA<-vector()
+downs_mRNA<-vector()
+
+wilcox_pvalues_ttgs<-vector()
+log2_foldchanges_ttgs<-vector()
+ups_22Gs<-vector()
+downs_22Gs<-vector()
+genes<-vector()
+
+for (gene in rownames(kmeans_clusters_both_experiments)){
+  if (gene %in% rownames(RNAseq_DEseqnorm)){
+  rnaseq<-as.numeric(RNAseq_DEseqnorm[gene,])
+  ones<-rnaseq[which(kmeans_clusters_both_experiments[gene,]==1)]
+  twos<-rnaseq[which(kmeans_clusters_both_experiments[gene,]==2)]
+  test<-suppressWarnings(wilcox.test(as.numeric(ones),as.numeric(twos)))
+  wilcox_pvalues<-c(wilcox_pvalues,test$p.value)
+  genes<-c(genes,gene)
+  logfc<-log2(mean(as.numeric(twos))+1)-log2(mean(as.numeric(ones))+1)
+  log2_foldchanges_wilcox<-c(log2_foldchanges_wilcox,logfc)
+  ups_mRNA<-c(ups_mRNA,mean(as.numeric(twos)))
+  downs_mRNA<-c(downs_mRNA,mean(as.numeric(ones)))
+ 
+  
+  ttg<-ttg_DEseqnorm[gene,]
+  ttg_ones<-ttg[which(kmeans_clusters_both_experiments[gene,]==1)]
+  ttg_twos<-ttg[which(kmeans_clusters_both_experiments[gene,]==2)]
+  test<-suppressWarnings(wilcox.test(as.numeric(ttg_ones),as.numeric(ttg_twos)))
+  wilcox_pvalues_ttgs<-c(wilcox_pvalues_ttgs,test$p.value)
+  logfc<-log2(mean(as.numeric(ttg_twos))+1)-log2(mean(as.numeric(ttg_ones))+1)
+  log2_foldchanges_ttgs<-c(log2_foldchanges_ttgs,logfc)
+  ups_22Gs<-c(ups_22Gs,mean(as.numeric(ttg_twos)))
+  downs_22Gs<-c(downs_22Gs,mean(as.numeric(ttg_ones)))
+
+}}
+
+wilcoxon_data<-data.frame(pvals=wilcox_pvalues,logfc=log2_foldchanges_wilcox,
+                          pvals_22G=wilcox_pvalues_ttgs,logfc_22G=log2_foldchanges_ttgs,
+                          ups_22Gs=ups_22Gs,downs_22Gs=downs_22Gs,ups_mRNA=ups_mRNA,downs_mRNA=downs_mRNA)
+rownames(wilcoxon_data)<-genes
+wilcoxon_data$padj<-p.adjust(wilcoxon_data$pvals,method = "fdr")
+wilcoxon_data$log10_pvals<-(-log10(wilcoxon_data$pvals))
+wilcoxon_data$padj_22G<-p.adjust(wilcoxon_data$pvals_22G,method = "fdr")
+wilcoxon_data$log10_pvals_22G<-(-log10(wilcoxon_data$pvals_22G))
+
+
+
+
+#mRNA data
+ggplot(wilcoxon_data)+geom_histogram(aes(x=pvals))
+ggplot(wilcoxon_data)+geom_histogram(aes(x=padj))
+
+length(which(wilcoxon_data$pvals<0.1))
+length(which(wilcoxon_data$pvals<0.1))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc>0))
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc<0))
+length(which(wilcoxon_data$pvals<0.1 & wilcoxon_data$logfc<0))/nrow(wilcoxon_data)
+
+length(which(wilcoxon_data$padj<0.2))
+length(which(wilcoxon_data$padj<0.2))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc>0))
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc<0))
+length(which(wilcoxon_data$padj<0.2 & wilcoxon_data$logfc<0))/nrow(wilcoxon_data)
+
+length(which(wilcoxon_data$padj<0.1))
+length(which(wilcoxon_data$padj<0.1))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.1 & wilcoxon_data$logfc>0))
+length(which(wilcoxon_data$padj<0.1 & wilcoxon_data$logfc>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj<0.1 & wilcoxon_data$logfc<0))
+length(which(wilcoxon_data$padj<0.1 & wilcoxon_data$logfc<0))/nrow(wilcoxon_data)
+
+#22G data
+ggplot(wilcoxon_data)+geom_histogram(aes(x=pvals_22G))
+ggplot(wilcoxon_data)+geom_histogram(aes(x=padj_22G))
+
+length(which(wilcoxon_data$pvals_22G<0.1))
+length(which(wilcoxon_data$pvals_22G<0.1))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G>0))
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G<0))
+length(which(wilcoxon_data$pvals_22G<0.1 & wilcoxon_data$logfc_22G<0))/nrow(wilcoxon_data)
+
+length(which(wilcoxon_data$padj_22G<0.2))
+length(which(wilcoxon_data$padj_22G<0.2))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G>0))
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G>0))/nrow(wilcoxon_data)
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G<0))
+length(which(wilcoxon_data$padj_22G<0.2 & wilcoxon_data$logfc_22G<0))/nrow(wilcoxon_data)
+
+wilcoxon_data$sig<-rep(0,nrow(wilcoxon_data))
+wilcoxon_data[wilcoxon_data$pvals<=0.1,"sig"]<-1; wilcoxon_data$sig<-as.factor(wilcoxon_data$sig)
+
+
+ggplot(wilcoxon_data)+geom_point(aes(x=logfc,y=-log(padj,10)))+geom_hline(yintercept=-log10(0.2),col="lightblue")
+
+ggplot(wilcoxon_data)+geom_point(aes(x=logfc,y=logfc_22G,color=sig))+xlab("log2 fold change in mRNA levels")+ylab("log2 fold change in 22Gs")+theme_classic()+scale_color_manual(values = c("#EE756E","#47A2CC"))
+ggsave("log2FC_mRNA_vs_22Gs_epimutations_p1e-4.pdf",dpi="retina")
+
+write.table(wilcoxon_data,file="RNAseq_tests_wilcoxon.txt")
+
+
+wilcoxon_data$totalchange_22Gs<-wilcoxon_data$ups_22Gs-wilcoxon_data$downs_22Gs
+wilcoxon_data$totalchange_mRNA<-wilcoxon_data$ups_mRNA-wilcoxon_data$downs_mRNA
+wilcoxon_data$totalchange_22Gs_log<-log2(abs(wilcoxon_data$totalchange_22Gs))
+wilcoxon_data$totalchange_mRNA_log<-log2(abs(wilcoxon_data$totalchange_mRNA))
+
+
+ggplot(wilcoxon_data)+geom_point(aes(x=totalchange_mRNA,y=totalchange_22Gs,color=sig))+xlab("total change in mRNA levels")+ylab("total change in 22Gs")
+ggplot(wilcoxon_data)+geom_point(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log,color=sig))+xlab("total change in mRNA levels")+ylab("total change in 22Gs")+scale_color_manual(values = c("#EE756E","#47A2CC"))+
+  theme_classic()+geom_smooth(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log),method='lm')
+ggsave("logscale_absolutechanges_in_mRNAs_vs_22Gs.pdf",device = "pdf")
+cor.test(wilcoxon_data$totalchange_22Gs_log,wilcoxon_data$totalchange_mRNA_log)
+cor(wilcoxon_data$totalchange_22Gs_log,wilcoxon_data$totalchange_mRNA_log)
+
+wilcoxon_data_22G_pos<-wilcoxon_data[which(wilcoxon_data$logfc>0),]
+ggplot(wilcoxon_data_22G_pos)+geom_point(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log,color=sig))+xlab("total change in mRNA levels")+ylab("total change in 22Gs")+scale_color_manual(values = c("#EE756E","#47A2CC"))+
+  theme_classic()+geom_smooth(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log),method='lm')
+ggsave("logscale_absolutechanges_in_mRNAs_vs_22Gs_poscor.pdf",device = "pdf")
+cor.test(wilcoxon_data_22G_pos$totalchange_22Gs_log,wilcoxon_data_22G_pos$totalchange_mRNA_log)
+cor(wilcoxon_data_22G_pos$totalchange_22Gs_log,wilcoxon_data_22G_pos$totalchange_mRNA_log)
+
+wilcoxon_data_22G_neg<-wilcoxon_data[which(wilcoxon_data$logfc<0),]
+ggplot(wilcoxon_data_22G_neg)+geom_point(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log,color=sig))+xlab("total change in mRNA levels")+ylab("total change in 22Gs")+scale_color_manual(values = c("#EE756E","#47A2CC"))+
+  theme_classic()+geom_smooth(aes(x=totalchange_mRNA_log,y=totalchange_22Gs_log),method='lm')
+ggsave("logscale_absolutechanges_in_mRNAs_vs_22Gs_negcor.pdf",device = "pdf")
+cor.test(wilcoxon_data_22G_neg$totalchange_22Gs_log,wilcoxon_data_22G_neg$totalchange_mRNA_log)
+cor(wilcoxon_data_22G_neg$totalchange_22Gs_log,wilcoxon_data_22G_neg$totalchange_mRNA_log)
+
+
+
+```
+
+## Chromatin locations of genes on the plot
+
+```{r merge wilcoxon data with chromatin, and plot}
+
+active<-read.table("../07_Gene_Sets/active_cosmidID")
+border<-read.table("../07_Gene_Sets/border_cosmidID")
+regulated<-read.table("../07_Gene_Sets/regulated_cosmidID")
+X<-read.table("../07_Gene_Sets/X_cosmidID")
+
+wilcoxon_data_chrom_info<-wilcoxon_data[which(wilcoxon_data$padj<0.2),]
+wilcoxon_data_chrom_info$chromatin<-rep(NA,nrow(wilcoxon_data_chrom_info))
+wilcoxon_data_chrom_info[which(rownames(wilcoxon_data_chrom_info) %in% active$V1),"chromatin"]<-"active"
+wilcoxon_data_chrom_info[which(rownames(wilcoxon_data_chrom_info) %in% regulated$V1),"chromatin"]<-"regulated"
+
+ggplot(wilcoxon_data_chrom_info)+geom_point(aes(x=logfc,y=logfc_22G,color=chromatin))+xlab("log2 fold change in mRNA levels")+ylab("log2 fold change in 22Gs")+theme_classic()
+ggsave("RNAseq_by_chromatin_domain_act_reg.pdf",dpi="retina")
+
+wilcoxon_data_chrom_info[which(rownames(wilcoxon_data_chrom_info) %in% X$V1),"chromatin"]<-"X"
+ggplot(wilcoxon_data_chrom_info)+geom_point(aes(x=logfc,y=logfc_22G,color=chromatin))+xlab("log2 fold change in mRNA levels")+ylab("log2 fold change in 22Gs")+theme_classic()
+ggsave("RNAseq_by_chromatin_domain_act_reg_X.pdf",dpi="retina")
+
+
+```
+
+
+## Testing whether the set of epimutable genes is enriched in changes at the mRNA level
+
+We repeat the same analysis for random sets of genes of the same size as the epimutable set. Background genes are first filtered to have at least the minimum 22G abundance required to be called as epimutable. These are then segmented, and differences in mRNA levels between high and low small RNA groups are assessed in the same way as above (Wilcoxon rank sum test).
+
+
+```{r wilcox test analysis with random sets of genes}
+
+#select genes with >10 22G normalised counts
+ttg_DEseqnorm_genomewide_segmentation<-ttg_DEseqnorm[which(rownames(ttg_DEseqnorm) %in% rownames(summary_stats_all[which(summary_stats_all$mean>10),])),]
+
+#segment
+library(nnet)
+
+kmeans_row<-function(vector){  
+  kmc<-kmeans(x = as.numeric(vector),centers=2)
+  high<-kmc$cluster[which.is.max(vector)]
+  if (high==2){return(kmc$cluster)
+  }else{return(abs(kmc$cluster-3))}
+}
+
+kmeans_clusters_GW<-matrix(0,nrow=nrow(ttg_DEseqnorm_genomewide_segmentation),ncol = 47)
+rownames(kmeans_clusters_GW)<-rownames(ttg_DEseqnorm_genomewide_segmentation)
+for (gene in rownames(ttg_DEseqnorm_genomewide_segmentation)){
+      kmeans_clusters_GW[gene,]<-kmeans_row(ttg_DEseqnorm_genomewide_segmentation[gene,])
+}
+colnames(kmeans_clusters_GW)<-colnames(ttg_DEseqnorm_genomewide_segmentation)
+
+
+nrow(kmeans_clusters_GW)
+
+
+#I am sampling a random gene from the mRNA counts table
+#and its corresponding segmentation from the kmeans table
+#and using them for the analysis - what fraction of changes are significant? How does this compare to the real dataset?
+RNAseq_DEseqnorm_controls<-RNAseq_DEseqnorm[which(rownames(RNAseq_DEseqnorm) %in% rownames(kmeans_clusters_GW)),]
+nrow(RNAseq_DEseqnorm_controls)
+
+total_p0.1<-rep(0,500)
+total_samedir_p0.1<-rep(0,500)
+total_oppdir_p0.1<-rep(0,500)
+
+total_fdr0.2<-rep(0,500)
+total_samedir_fdr0.2<-rep(0,500)
+total_oppdir_fdr0.2<-rep(0,500)
+
+total_fdr0.1<-rep(0,500)
+total_samedir_fdr0.1<-rep(0,500)
+total_oppdir_fdr0.1<-rep(0,500)
+
+for (reps in seq(500)){
+  
+  if (reps %in% c(10,50,100,200,300,400,500)){
+  print(reps)}
+  
+  wilcox_pvalues<-rep(0,469)
+  log2_foldchanges_wilcox<-rep(0,469)
+
+
+for (i in seq(469)){
+  rand_gene<-rownames(RNAseq_DEseqnorm_controls)[round(runif(1,min=0.5,max=nrow(RNAseq_DEseqnorm_controls)+0.49999))]
+
+  rnaseq<-as.numeric(RNAseq_DEseqnorm_controls[rand_gene,])
+  ones<-rnaseq[which(kmeans_clusters_GW[rand_gene,]==1)]
+  twos<-rnaseq[which(kmeans_clusters_GW[rand_gene,]==2)]
+  test<-suppressWarnings(wilcox.test(as.numeric(ones),as.numeric(twos)))
+  wilcox_pvalues[i]<-test$p.value
+  logfc<-log2(mean(as.numeric(twos))+1)-log2(mean(as.numeric(ones))+1)
+  log2_foldchanges_wilcox[i]<-logfc
+  
+}
+
+
+wilcoxon_data_random<-data.frame(pvals=wilcox_pvalues,logfc=log2_foldchanges_wilcox)
+wilcoxon_data_random$padj<-p.adjust(wilcoxon_data_random$pvals,method = "fdr")
+wilcoxon_data_random$log10_pvals<-(-log10(wilcoxon_data_random$pvals))
+
+#mRNA data
+
+total_p0.1[reps]<-length(which(wilcoxon_data_random$pvals<0.1))
+total_samedir_p0.1[reps]<-length(which(wilcoxon_data_random$pvals<0.1 & wilcoxon_data_random$logfc>0))
+total_oppdir_p0.1[reps]<-length(which(wilcoxon_data_random$pvals<0.1 & wilcoxon_data_random$logfc<0))
+
+total_fdr0.2[reps]<-length(which(wilcoxon_data_random$padj<0.2))
+total_samedir_fdr0.2[reps]<-length(which(wilcoxon_data_random$padj<0.2 & wilcoxon_data_random$logfc>0))
+total_oppdir_fdr0.2[reps]<-length(which(wilcoxon_data_random$padj<0.2 & wilcoxon_data_random$logfc<0))
+
+total_fdr0.1[reps]<-length(which(wilcoxon_data_random$padj<0.1))
+total_samedir_fdr0.1[reps]<-length(which(wilcoxon_data_random$padj<0.1 & wilcoxon_data_random$logfc>0))
+total_oppdir_fdr0.1[reps]<-length(which(wilcoxon_data_random$padj<0.1 & wilcoxon_data_random$logfc<0))
+
+}
+
+
+summary_of_randomisation<-data.frame(p_0.1=total_p0.1,
+               p_0.1_samedir=total_samedir_p0.1,
+               p_0.1_oppdir=total_oppdir_p0.1,
+               fdr_0.2=total_fdr0.2,
+               fdr_0.2_samedir=total_samedir_fdr0.2,
+               fdr_0.2_oppdir=total_oppdir_fdr0.2,
+               fdr_0.1=total_fdr0.1,
+               fdr_0.1_samedir=total_samedir_fdr0.1,
+               fdr_0.1_oppdir=total_oppdir_fdr0.1)
+
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=p_0.1),breaks=seq(120,220,100/30))+geom_vline(xintercept = 166,color="lightblue")
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=p_0.1_samedir),breaks=seq(50,150,100/30))+geom_vline(xintercept = 90,color="lightblue")
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=p_0.1_oppdir),breaks=seq(40,120,80/30))+geom_vline(xintercept = 76,color="lightblue")
+
+
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=fdr_0.2),breaks=seq(0,150,150/30))+geom_vline(xintercept = 124,color="lightblue")+theme_classic()
+ggsave("RNAseq_control_2_random_sets_of_genes_fdr0.2_p1e-4.pdf")
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=fdr_0.2_samedir),breaks=seq(0,90,90/30))+geom_vline(xintercept = 65,color="lightblue")+theme_classic()
+ggsave("RNAseq_control_2_random_sets_of_genes_fdr0.2_samedir_p1e-4.pdf")
+ggplot(summary_of_randomisation)+geom_histogram(aes(x=fdr_0.2_oppdir),breaks=seq(0,80,80/30))+geom_vline(xintercept = 59,color="lightblue")+theme_classic()
+ggsave("RNAseq_control_2_random_sets_of_genes_fdr0.2_oppdir_p1e-4.pdf")
+
+
+
+
+
+
+
+
+```
+
+
+## Fold change data
+
+This code calculates the fold changes in 22G-RNA and mRNA levels for each epimutation event and adds it to the epimutations summary table generated after the segmentation analysis - this is for downstream testing of the relationship between epimutation duration and the magnitude and direction of changes in 22G-RNA levels and mRNA levels.
+
+```{r fold change data in consecutive generations}
+
+
+maplot_data_A<-ttg_MAplot_data[which((ttg_MAplot_data$line1 %in% colnames(ttg_DEseqnorm[,1:12])) &
+                                        (ttg_MAplot_data$line2 %in% colnames(ttg_DEseqnorm[,1:12]))),]
+maplot_data_B<-ttg_MAplot_data[which((ttg_MAplot_data$line1 %in% colnames(ttg_DEseqnorm[,13:24])) &
+                                        (ttg_MAplot_data$line2 %in% colnames(ttg_DEseqnorm[,13:24]))),]
+
+remove_char<-function(string){return(substring(string, 2))}
+
+#select consecutive generation maplot calls
+maplot_data_A$line1<-as.numeric(sapply(maplot_data_A[,"line1"],FUN=remove_char))
+maplot_data_A$line2<-as.numeric(sapply(maplot_data_A[,"line2"],FUN=remove_char))
+maplot_data_A<-maplot_data_A[which(abs(maplot_data_A$line1-maplot_data_A$line2)==1),]
+maplot_data_B$line1<-as.numeric(sapply(maplot_data_B[,"line1"],FUN=remove_char))
+maplot_data_B$line2<-as.numeric(sapply(maplot_data_B[,"line2"],FUN=remove_char))
+maplot_data_B<-maplot_data_B[which(abs(maplot_data_B$line1-maplot_data_B$line2)==1),]
+
+epimutable_genes_genbygen<-read.table("epimutable_genes_genbygen.txt")
+epimutable_genes_genbygen<-epimutable_genes_genbygen$x
+
+maplot_data_A<-maplot_data_A[which(maplot_data_A$ID %in% epimutable_genes_genbygen),]
+maplot_data_B<-maplot_data_B[which(maplot_data_B$ID %in% epimutable_genes_genbygen),]
+
+
+ttg_foldchanges<-vector()
+mrna_foldchanges<-vector()
+genes<-vector()
+
+for (row in seq(nrow(maplot_data_A))){
+  gene<-toString(maplot_data_A[row,"ID"])
+  line1<-maplot_data_A[row,"line1"]; line2<-maplot_data_A[row,"line2"]
+  if (line1>7){line1<-line1-1}
+  if (line2>7){line2<-line2-1}
+  ct1<-ttg_DEseqnorm[gene,line1]
+  ct2<-ttg_DEseqnorm[gene,line2]
+  ttg_foldchanges<-c(ttg_foldchanges,(log2(ct2+1)-log2(ct1+1)))
+  
+  mr1<-RNAseq_DEseqnorm[gene,line1]
+  mr2<-RNAseq_DEseqnorm[gene,line2]
+  mrna_foldchanges<-c(mrna_foldchanges,(log2(mr2+1)-log2(mr1+1)))
+  
+  genes<-c(genes,gene)
+  
+}
+
+for (row in seq(nrow(maplot_data_B))){
+  gene<-toString(maplot_data_B[row,"ID"])
+  line1<-maplot_data_B[row,"line1"]; line2<-maplot_data_B[row,"line2"]
+  if (line1>7){line1<-line1-1}
+  if (line2>7){line2<-line2-1}
+  ct1<-ttg_DEseqnorm[gene,line1+12]
+  ct2<-ttg_DEseqnorm[gene,line2+12]
+  ttg_foldchanges<-c(ttg_foldchanges,(log2(ct2+1)-log2(ct1+1)))
+  
+  mr1<-RNAseq_DEseqnorm[gene,line1+12]
+  mr2<-RNAseq_DEseqnorm[gene,line2+12]
+  mrna_foldchanges<-c(mrna_foldchanges,(log2(mr2+1)-log2(mr1+1)))
+  
+  genes<-c(genes,gene)
+
+}
+
+
+fold_change_consecutive_gens<-data.frame(ttg_fc=ttg_foldchanges,mrna_fc=mrna_foldchanges,ID=genes)
+fold_change_consecutive_gens$fc1.5<-rep(0,nrow(fold_change_consecutive_gens))
+fold_change_consecutive_gens[which(abs(fold_change_consecutive_gens$mrna_fc)>log2(1.5)),"fc1.5"]<-1
+fold_change_consecutive_gens$fc1.5<-as.factor(fold_change_consecutive_gens$fc1.5)
+
+
+length(which(fold_change_consecutive_gens$fc1.5==1))
+length(which(fold_change_consecutive_gens$fc1.5==1))/nrow(fold_change_consecutive_gens)
+
+length(which(fold_change_consecutive_gens$fc1.5==1 & 
+             fold_change_consecutive_gens$mrna_fc*fold_change_consecutive_gens$ttg_fc >0))
+length(which(fold_change_consecutive_gens$fc1.5==1 & 
+             fold_change_consecutive_gens$mrna_fc*fold_change_consecutive_gens$ttg_fc >0))/length(which(fold_change_consecutive_gens$fc1.5==1))
+length(which(fold_change_consecutive_gens$fc1.5==1 & 
+             fold_change_consecutive_gens$mrna_fc*fold_change_consecutive_gens$ttg_fc <0))
+length(which(fold_change_consecutive_gens$fc1.5==1 & 
+             fold_change_consecutive_gens$mrna_fc*fold_change_consecutive_gens$ttg_fc <0))/length(which(fold_change_consecutive_gens$fc1.5==1))
+
+nrow(fold_change_consecutive_gens)
+
+```
+
+
+This code adds fold-change information to each individual epimutation that we see in the consecutive generation experiment.
+- 22G fold change, and levels before and after
+- mRNA fold change, and levels before and after
+- whether this gene is called significant by the wilcoxon test
+- whether this particular epimutation was detected in the MA plot analysis
+
+
+```{r generate epimut table with additional RNA-seq information}
+
+wilcoxon_data_sig<-wilcoxon_data[which(wilcoxon_data$padj<0.2),]
+maplot_cons_sig<-rbind(maplot_data_A,maplot_data_B)
+
+#collect full dataset in the duration table
+
+
+epimut_duration_kmeans_A<-read.table("epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4.txt")
+epimut_duration_kmeans_B<-read.table("epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4.txt")
+
+#add wilcoxon significance
+epimut_duration_kmeans_A$wilcox_sig<-rep(0,nrow(epimut_duration_kmeans_A))
+epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$ID %in% rownames(wilcoxon_data_sig)),"wilcox_sig"]<-1
+epimut_duration_kmeans_B$wilcox_sig<-rep(0,nrow(epimut_duration_kmeans_B))
+epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$ID %in% rownames(wilcoxon_data_sig)),"wilcox_sig"]<-1
+
+#add average mRNA fold change
+epimut_duration_kmeans_A$overall_mRNA_fc<-rep(0,nrow(epimut_duration_kmeans_A))
+for (i in seq(nrow(epimut_duration_kmeans_A))){
+  gene<-as.character(epimut_duration_kmeans_A$ID[i])
+  if (gene %in% rownames(wilcoxon_data)){
+  logfc<-wilcoxon_data[which(rownames(wilcoxon_data)==gene),"logfc"]}
+  else {logfc<-NA}
+  epimut_duration_kmeans_A$overall_mRNA_fc[i]<-logfc
+}
+
+epimut_duration_kmeans_B$overall_mRNA_fc<-rep(0,nrow(epimut_duration_kmeans_B))
+for (i in seq(nrow(epimut_duration_kmeans_B))){
+  gene<-as.character(epimut_duration_kmeans_B$ID[i])
+  if (gene %in% rownames(wilcoxon_data)){
+  logfc<-wilcoxon_data[which(rownames(wilcoxon_data)==gene),"logfc"]}
+  else {logfc<-NA}
+  epimut_duration_kmeans_B$overall_mRNA_fc[i]<-logfc
+}
+
+#add wilcoxon direction of change
+epimut_duration_kmeans_A$wilcox_dir<-rep(0,nrow(epimut_duration_kmeans_A))
+epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_kmeans_A$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc>0),])),"wilcox_dir"]<-(1)
+epimut_duration_kmeans_A[which(epimut_duration_kmeans_A$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_kmeans_A$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc<0),])),"wilcox_dir"]<-(-1)
+
+epimut_duration_kmeans_B$wilcox_dir<-rep(0,nrow(epimut_duration_kmeans_B))
+epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_kmeans_B$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc>0),])),"wilcox_dir"]<-(1)
+epimut_duration_kmeans_B[which(epimut_duration_kmeans_B$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_kmeans_B$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc<0),])),"wilcox_dir"]<-(-1)
+
+
+#add MAplot detection
+
+maplot_cons_sig[1,]
+
+get_fc_data_linA<-function(row){
+  ID<-toString(row[[1]])
+  stgen<-as.numeric(row[[5]])
+  if (stgen>7){stgen<-stgen-1}
+  maplotsig<-0
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  mRNA_fc<-log2(RNAseq_DEseqnorm[ID,stgen+1]+1)-log2(RNAseq_DEseqnorm[ID,stgen]+1)
+  mRNA_before<-RNAseq_DEseqnorm[ID,stgen]
+  mRNA_after<-RNAseq_DEseqnorm[ID,stgen+1]
+  }
+  ttg_fc<-log2(ttg_DEseqnorm[ID,stgen+1]+1)-log2(ttg_DEseqnorm[ID,stgen]+1)
+  ttg_before<-ttg_DEseqnorm[ID,stgen]
+  ttg_after<-ttg_DEseqnorm[ID,stgen+1]
+  if (nrow(maplot_cons_sig[which(maplot_data_A$ID==ID & maplot_data_A$line1==stgen),])==1){
+    maplotsig<-1
+  }
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  return(c(mRNA_fc,mRNA_before,mRNA_after,ttg_fc,ttg_before,ttg_after,maplotsig))}
+  else{return(c(NA,NA,NA,ttg_fc,ttg_before,ttg_after,maplotsig))}
+}
+
+get_fc_data_linB<-function(row){
+  ID<-toString(row[[1]])
+  stgen<-as.numeric(row[[5]])
+  if (stgen>7){stgen<-stgen-1}
+  maplotsig<-0
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  mRNA_fc<-log2(RNAseq_DEseqnorm[ID,stgen+13]+1)-log2(RNAseq_DEseqnorm[ID,stgen+12]+1)
+  mRNA_before<-RNAseq_DEseqnorm[ID,stgen+12]
+  mRNA_after<-RNAseq_DEseqnorm[ID,stgen+13]
+  }
+  ttg_fc<-log2(ttg_DEseqnorm[ID,stgen+13]+1)-log2(ttg_DEseqnorm[ID,stgen+12]+1)
+  ttg_before<-ttg_DEseqnorm[ID,stgen+12]
+  ttg_after<-ttg_DEseqnorm[ID,stgen+13]
+  if (nrow(maplot_cons_sig[which(maplot_data_B$ID==ID & maplot_data_B$line1==stgen),])==1){
+    maplotsig<-1
+  }
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  return(c(mRNA_fc,mRNA_before,mRNA_after,ttg_fc,ttg_before,ttg_after,maplotsig))}
+  else{return(c(NA,NA,NA,ttg_fc,ttg_before,ttg_after,maplotsig))}
+}
+
+get_fc_data_linA(epimut_duration_kmeans_A[1,])
+
+
+toString(epimut_duration_kmeans_A[1,][[1]])
+
+
+epimut_duration_kmeans_A_fcdata<-t(apply(epimut_duration_kmeans_A,MARGIN=1,FUN=get_fc_data_linA))
+epimut_duration_kmeans_B_fcdata<-t(apply(epimut_duration_kmeans_B,MARGIN=1,FUN=get_fc_data_linB))
+
+colnames(epimut_duration_kmeans_A_fcdata)<-c("mRNA_fold_change","mRNA_before","mRNA_after","22G_fold_change","22G_before","22G_after","MAplot_significant")
+colnames(epimut_duration_kmeans_B_fcdata)<-c("mRNA_fold_change","mRNA_before","mRNA_after","22G_fold_change","22G_before","22G_after","MAplot_significant")
+
+nrow(epimut_duration_kmeans_A_fcdata)
+nrow(epimut_duration_kmeans_A)
+
+epimut_duration_kmeans_A<-cbind(epimut_duration_kmeans_A,epimut_duration_kmeans_A_fcdata)
+epimut_duration_kmeans_B<-cbind(epimut_duration_kmeans_B,epimut_duration_kmeans_B_fcdata)
+
+write.table(epimut_duration_kmeans_A,"epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4_FCdata.txt",row.names = FALSE,quote=FALSE,sep="\t")
+write.table(epimut_duration_kmeans_B,"epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4_FCdata.txt",row.names = FALSE,quote=FALSE,sep="\t")
+
+```
+
+## Same for HMM segmentation data
+
+```{r add FC data for HMM analysis}
+
+wilcoxon_data_sig<-wilcoxon_data[which(wilcoxon_data$padj<0.2),]
+maplot_cons_sig<-rbind(maplot_data_A,maplot_data_B)
+
+#collect full dataset in the duration table
+
+
+epimut_duration_HMM_A<-read.table("epimut_duration_batchremoved_HMM_linA_JOINT_p1e-4.txt",header=TRUE)
+epimut_duration_HMM_B<-read.table("epimut_duration_batchremoved_HMM_linB_JOINT_p1e-4.txt",header=TRUE)
+
+#add wilcoxon significance
+epimut_duration_HMM_A$wilcox_sig<-rep(0,nrow(epimut_duration_HMM_A))
+epimut_duration_HMM_A[which(epimut_duration_HMM_A$ID %in% rownames(wilcoxon_data_sig)),"wilcox_sig"]<-1
+epimut_duration_HMM_B$wilcox_sig<-rep(0,nrow(epimut_duration_HMM_B))
+epimut_duration_HMM_B[which(epimut_duration_HMM_B$ID %in% rownames(wilcoxon_data_sig)),"wilcox_sig"]<-1
+
+#add wilcoxon direction of change
+epimut_duration_HMM_A$wilcox_dir<-rep(0,nrow(epimut_duration_HMM_A))
+epimut_duration_HMM_A[which(epimut_duration_HMM_A$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_HMM_A$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc>0),])),"wilcox_dir"]<-(1)
+epimut_duration_HMM_A[which(epimut_duration_HMM_A$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_HMM_A$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc<0),])),"wilcox_dir"]<-(-1)
+
+epimut_duration_HMM_B$wilcox_dir<-rep(0,nrow(epimut_duration_HMM_B))
+epimut_duration_HMM_B[which(epimut_duration_HMM_B$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_HMM_B$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc>0),])),"wilcox_dir"]<-(1)
+epimut_duration_HMM_B[which(epimut_duration_HMM_B$ID %in% rownames(wilcoxon_data_sig) & epimut_duration_HMM_B$ID %in% rownames(wilcoxon_data_sig[which(wilcoxon_data_sig$logfc<0),])),"wilcox_dir"]<-(-1)
+
+
+#add MAplot detection
+
+maplot_cons_sig[1,]
+
+get_fc_data_linA<-function(row){
+  ID<-toString(row[[1]])
+  stgen<-as.numeric(row[[5]])
+  if (stgen>7){stgen<-stgen-1}
+  maplotsig<-0
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  mRNA_fc<-log2(RNAseq_DEseqnorm[ID,stgen+1]+1)-log2(RNAseq_DEseqnorm[ID,stgen]+1)
+  mRNA_before<-RNAseq_DEseqnorm[ID,stgen]
+  mRNA_after<-RNAseq_DEseqnorm[ID,stgen+1]
+  }
+  ttg_fc<-log2(ttg_DEseqnorm[ID,stgen+1]+1)-log2(ttg_DEseqnorm[ID,stgen]+1)
+  ttg_before<-ttg_DEseqnorm[ID,stgen]
+  ttg_after<-ttg_DEseqnorm[ID,stgen+1]
+  if (nrow(maplot_cons_sig[which(maplot_data_A$ID==ID & maplot_data_A$line1==stgen),])==1){
+    maplotsig<-1
+  }
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  return(c(mRNA_fc,mRNA_before,mRNA_after,ttg_fc,ttg_before,ttg_after,maplotsig))}
+  else{return(c(NA,NA,NA,ttg_fc,ttg_before,ttg_after,maplotsig))}
+}
+
+get_fc_data_linB<-function(row){
+  ID<-toString(row[[1]])
+  stgen<-as.numeric(row[[5]])
+  if (stgen>7){stgen<-stgen-1}
+  maplotsig<-0
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  mRNA_fc<-log2(RNAseq_DEseqnorm[ID,stgen+13]+1)-log2(RNAseq_DEseqnorm[ID,stgen+12]+1)
+  mRNA_before<-RNAseq_DEseqnorm[ID,stgen+12]
+  mRNA_after<-RNAseq_DEseqnorm[ID,stgen+13]
+  }
+  ttg_fc<-log2(ttg_DEseqnorm[ID,stgen+13]+1)-log2(ttg_DEseqnorm[ID,stgen+12]+1)
+  ttg_before<-ttg_DEseqnorm[ID,stgen+12]
+  ttg_after<-ttg_DEseqnorm[ID,stgen+13]
+  if (nrow(maplot_cons_sig[which(maplot_data_B$ID==ID & maplot_data_B$line1==stgen),])==1){
+    maplotsig<-1
+  }
+  if (ID %in% rownames(RNAseq_DEseqnorm)){
+  return(c(mRNA_fc,mRNA_before,mRNA_after,ttg_fc,ttg_before,ttg_after,maplotsig))}
+  else{return(c(NA,NA,NA,ttg_fc,ttg_before,ttg_after,maplotsig))}
+}
+
+get_fc_data_linA(epimut_duration_HMM_A[1,])
+
+
+toString(epimut_duration_HMM_A[1,][[1]])
+
+
+epimut_duration_HMM_A_fcdata<-t(apply(epimut_duration_HMM_A,MARGIN=1,FUN=get_fc_data_linA))
+epimut_duration_HMM_B_fcdata<-t(apply(epimut_duration_HMM_B,MARGIN=1,FUN=get_fc_data_linB))
+
+colnames(epimut_duration_HMM_A_fcdata)<-c("mRNA_fold_change","mRNA_before","mRNA_after","22G_fold_change","22G_before","22G_after","MAplot_significant")
+colnames(epimut_duration_HMM_B_fcdata)<-c("mRNA_fold_change","mRNA_before","mRNA_after","22G_fold_change","22G_before","22G_after","MAplot_significant")
+
+nrow(epimut_duration_HMM_A_fcdata)
+nrow(epimut_duration_HMM_A)
+
+epimut_duration_HMM_A<-cbind(epimut_duration_HMM_A,epimut_duration_HMM_A_fcdata)
+epimut_duration_HMM_B<-cbind(epimut_duration_HMM_B,epimut_duration_HMM_B_fcdata)
+
+write.table(epimut_duration_HMM_A,"epimut_duration_batchremoved_HMM_linA_JOINT_p1e-4_FCdata.txt",row.names = FALSE,quote=FALSE,sep="\t")
+write.table(epimut_duration_HMM_B,"epimut_duration_batchremoved_HMM_linB_JOINT_p1e-4_FCdata.txt",row.names = FALSE,quote=FALSE,sep="\t")
+
+
+
+
+
+```

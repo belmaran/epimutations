@@ -1,0 +1,99 @@
+---
+title: "2019_06_24_TEs_intersect_with_epimutations"
+author: "Toni Beltran"
+date: "24/06/2019"
+output: html_document
+---
+
+```{r read gene lists}
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/Beltran_et_al_2020_NEE/08_TE_analysis_M1/TE_enrichment_gene_lists/")
+epimuts_gen25_100_m1<-read.table("epimutated_genes_gens25_100_p1e-4.txt"); epimuts_gen25_100_m1<-epimuts_gen25_100_m1$V1
+epimuts_genbygen_m1<-read.table("epimutated_genes_genbygen_p1e-4.txt"); epimuts_genbygen_m1<-epimuts_genbygen_m1$V1
+epimuts_gen25_100_M1<-read.table("epimutable_genes_gen25-100_M1.txt"); epimuts_gen25_100_M1<-epimuts_gen25_100_M1$V1
+epimuts_genbygen_M1<-read.table("epimutable_genes_genbygen_M1.txt"); epimuts_genbygen_M1<-epimuts_genbygen_M1$x
+
+TEs<-read.table("TE_cov0.8_all_txs.txt"); TEs<-TEs$V2
+TE_annotation<-read.table("TE_class_annotation"); TE_annotation<-TE_annotation[3:nrow(TE_annotation),]; colnames(TE_annotation)<-c("Gene.ID","repeat hit","repeat class")
+
+length(TEs)
+
+intersect(epimuts_gen25_100_m1,TEs) #13/422
+intersect(epimuts_gen25_100_M1,TEs) #29/633
+intersect(epimuts_genbygen_m1,TEs) #2/145
+intersect(epimuts_genbygen_M1,TEs) #1/179
+
+print_TE_data_summary<-function(epis){
+print(unique(TE_annotation[which(TE_annotation$Gene.ID %in% intersect(epis,TEs)),c("Gene.ID","repeat class")]))
+epimutated_te_class<-data.frame(table(unique(TE_annotation[which(TE_annotation$Gene.ID %in% intersect(epis,TEs)),c("Gene.ID","repeat class")])[,"repeat class"]))
+epimutated_te_class[which(epimutated_te_class$Freq>0),]
+}
+
+print_TE_data_summary(epimuts_gen25_100_m1)
+print_TE_data_summary(epimuts_gen25_100_M1)
+print_TE_data_summary(epimuts_genbygen_m1)
+print_TE_data_summary(epimuts_genbygen_M1)
+
+
+```
+
+
+```{r test overlaps}
+
+print_size_and_overlap_hyptest<-function(set1,set2,background_set){
+  set1<-set1[which(set1 %in% background_set)]; set2<-set2[which(set2 %in% background_set)]
+  overlap<-length(intersect(set1,set2))
+  lenset1<-length(set1)
+  lenset2<-length(set2)
+  print(c(lenset1,lenset2,overlap))
+  phyper(q=overlap,m=lenset2,n=length(background_set)-lenset2,k=lenset1,lower.tail = FALSE)
+}
+
+
+ttg_counts_averaged<-read.table("../22G_counts/final_counts_table/all_counts_M1_deseqnorm_averaged.txt")
+genbygen_mean<-data.frame(mean=apply(ttg_counts_averaged[,1:24],FUN=sum,MARGIN = 1),ID=rownames(ttg_counts_averaged[,1:24]))
+gens_25_100_mean<-data.frame(mean=apply(ttg_counts_averaged[,25:47],FUN=sum,MARGIN = 1),ID=rownames(ttg_counts_averaged[,25:47]))
+
+background_genbygen_M1<-genbygen_mean[which(genbygen_mean$mean>10),"ID"]
+background_gens_25_100_M1<-gens_25_100_mean[which(gens_25_100_mean$mean>10),"ID"]
+
+
+ttg_counts_averaged<-read.table("../../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+genbygen_mean<-data.frame(mean=apply(ttg_counts_averaged[,1:24],FUN=sum,MARGIN = 1),ID=rownames(ttg_counts_averaged[,1:24]))
+gens_25_100_mean<-data.frame(mean=apply(ttg_counts_averaged[,25:47],FUN=sum,MARGIN = 1),ID=rownames(ttg_counts_averaged[,25:47]))
+
+background_genbygen_m1<-genbygen_mean[which(genbygen_mean$mean>10),"ID"]
+background_gens_25_100_m1<-gens_25_100_mean[which(gens_25_100_mean$mean>10),"ID"]
+
+
+
+print_size_and_overlap_hyptest(epimuts_gen25_100_m1,TEs,background_gens_25_100_m1)
+print_size_and_overlap_hyptest(epimuts_gen25_100_M1,TEs,background_gens_25_100_M1)
+print_size_and_overlap_hyptest(epimuts_genbygen_m1,TEs,background_genbygen_m1)
+print_size_and_overlap_hyptest(epimuts_genbygen_M1,TEs,background_genbygen_M1)
+
+```
+
+
+```{r long term inheritance test}
+
+kmeans_seg<-read.table("../k-means_segmentation_epimutable_genes.txt")
+kmeans_seg[which(rownames(kmeans_seg) %in% TEs),]
+
+library(gplots)
+heatmap.2(as.matrix(kmeans_seg[which(rownames(kmeans_seg) %in% TEs),]),trace="none",dendrogram = "none",Colv=FALSE,Rowv=FALSE)
+
+
+pdf("kmeans_states_repeats.pdf")
+heatmap.2(as.matrix(kmeans_seg[which(rownames(kmeans_seg) %in% TEs),c(1,2,13,3,14,4,15,5,16,6,17,7,18,8,19,9,20,10,21,11,22,12,23)+24]),trace="none",dendrogram = "none",Rowv=FALSE,
+          Colv=FALSE)
+dev.off()
+
+
+
+
+```
+
+
+
+

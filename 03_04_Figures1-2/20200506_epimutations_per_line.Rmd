@@ -1,0 +1,66 @@
+---
+title: "epimutation_distribution.Rmd"
+output: html_document
+---
+
+```{r data}
+
+library(ggplot2)
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/03_Figure1")
+epimut_data<-read.table("k-means_segmentation_epimutable_genes.txt")
+
+
+epimut_data_25100<-epimut_data[,25:47]
+
+epimut_data_25100["Y71F9AL.5",][13:23]
+
+calculate_numberoflines_epimutated<-function(row){
+  pma<-as.numeric(row[12])
+  gen25<-as.numeric(row[1:11])
+  return(sum(abs(gen25-pma)))
+}
+
+length(which(apply(epimut_data_25100,MARGIN = 1,FUN=calculate_numberoflines_epimutated)>0))
+gen25_epimuts_per_line<-data.frame(numlines=apply(epimut_data_25100,MARGIN = 1,FUN=calculate_numberoflines_epimutated))
+gen25_epimuts_per_line<-data.frame(numlines=gen25_epimuts_per_line[which(gen25_epimuts_per_line$numlines>0),])
+
+ggplot(gen25_epimuts_per_line)+geom_bar(aes(x=numlines))+
+  xlab("number of lines epimutated")+
+  ylab("number of genes")+
+  theme_classic()+
+  ggtitle("MA25")
+ggsave("epimutations_per_line_distribution_MA25.pdf")
+
+
+
+calculate_numberoflines_epimutated<-function(row){
+  pma<-as.numeric(row[11])
+  gen100<-as.numeric(row[13:23])
+  return(sum(abs(gen100-pma)))
+}
+
+length(which(apply(epimut_data_25100,MARGIN = 1,FUN=calculate_numberoflines_epimutated)>0))
+gen100_epimuts_per_line<-data.frame(numlines=apply(epimut_data_25100,MARGIN = 1,FUN=calculate_numberoflines_epimutated))
+gen100_epimuts_per_line<-data.frame(numlines=gen100_epimuts_per_line[which(gen100_epimuts_per_line$numlines>0),])
+
+ggplot(gen100_epimuts_per_line)+geom_bar(aes(x=numlines))+
+  xlab("number of lines epimutated")+
+  ylab("number of genes")+
+  theme_classic()+
+  ggtitle("MA100")
+ggsave("epimutations_per_line_distribution_MA100.pdf")
+
+
+
+
+gen25100_epimuts_per_line<-rbind(gen25_epimuts_per_line,gen100_epimuts_per_line)
+
+ggplot(gen25100_epimuts_per_line)+geom_bar(aes(x=numlines))+
+  xlab("number of lines epimutated")+
+  ylab("number of genes")+
+  theme_classic()+
+  ggtitle("all lines")
+ggsave("epimutations_per_line_distribution.pdf")
+
+```
+

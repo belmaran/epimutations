@@ -1,0 +1,317 @@
+---
+title: "clustering of epimutations"
+output: html_document
+---
+
+```{r clustering of epimutable genes}
+
+library(ggplot2)
+
+setwd("/Users/ab6415/Documents/Work_laptop_stuff/Bioinformatics/Analysis/Beltran_et_al_2020_NEE/03_04_Figures1-2/epimutation_clustering/")
+epimut_data<-read.table("../../03_04_Figures1-2/k-means_segmentation_epimutable_genes.txt")
+epimut_genes_noiso<-read.table("epimutable_genes.noiso.txt"); epimut_genes_noiso<-epimut_genes_noiso$V1
+
+
+gene_order<-read.table("cel_geneorder_numbered.txt"); colnames(gene_order)<-c("chr","cosmidID","order_pos")
+gene_positions<-read.table("cel_genepos_and_cosmidID.bed"); colnames(gene_positions)<-c("chr","start","end","cosmidID")
+
+ttg_normcounts<-read.table("../../02_Normalised_counts/22G_DEseqnorm_counts_averaged.txt")
+
+gene_order_and_positions<-merge(gene_order,gene_positions[,c("start","end","cosmidID")],by="cosmidID")
+gene_order_and_positions<-gene_order_and_positions[-which(duplicated(gene_order_and_positions$cosmidID)),]
+gene_order_and_positions<-gene_order_and_positions[order(gene_order_and_positions$order_pos),]
+gene_order_and_positions$meanpos<-(gene_order_and_positions$start+gene_order_and_positions$end)/2
+
+iso_to_noiso<-data.frame(iso=rownames(epimut_data),noiso=epimut_genes_noiso)
+
+
+order_distributions<-function(gene_set){
+  gene_order<-c(diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="I"),"order_pos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="II"),"order_pos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="III"),"order_pos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="IV"),"order_pos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="V"),"order_pos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="X"),"order_pos"]))
+  return(gene_order)
+}
+
+distance_distributions<-function(gene_set){
+  distances<-c(diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="I"),"meanpos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="II"),"meanpos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="III"),"meanpos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="IV"),"meanpos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="V"),"meanpos"]),
+                diff(gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% gene_set & gene_order_and_positions$chr=="X"),"meanpos"]))
+  return(distances)
+}
+  
+
+```
+
+
+Here I calculate the number of genes separating epimutable genes in the linear genome - neighbouring genes are at a distance of 1, etc. I see a clear excess of neighbouring genes compared to randomly selected genes - in support of clustering.
+
+
+```{r comparing distance in terms of number of genes apart}
+
+hist(order_distributions(epimut_genes_noiso),breaks=seq(1000))
+length(which(order_distributions(epimut_genes_noiso)==1))
+median(distance_distributions(epimut_genes_noiso))
+
+length(order_distributions(epimut_genes_noiso))
+
+length(which(epimut_genes_noiso %in% gene_order_and_positions$cosmidID))
+
+random_sets_numneighbors<-rep(0,10000)
+random_sets_distances<-rep(0,10000)
+for (i in seq(10000)){
+  rand_set<-sample(gene_order_and_positions$cosmidID,size = 396,replace = FALSE)
+  random_sets_numneighbors[i]<-length(which(order_distributions(rand_set)==1))
+  random_sets_distances[i]<-median(distance_distributions(rand_set))
+}
+
+order_data<-data.frame(distance=c(order_distributions(epimut_genes_noiso),order_distributions(rand_set)),
+                          data=c(rep("real",length(order_distributions(epimut_genes_noiso))),rep("simulated",length(order_distributions(rand_set)))))
+ggplot(order_data)+geom_bar(aes(x=distance,fill=data),position ="dodge")+coord_cartesian(xlim=c(0,100))
+
+
+library(ggplot2)
+ggplot(data.frame(random_sets_numneighbors))+geom_bar(aes(x=random_sets_numneighbors))+
+  coord_cartesian(xlim=c(-1,32))+
+  geom_vline(xintercept = 30,col="red",linetype="dashed")+
+  xlab("number of neighbouring epimutable gene pairs")+
+  theme_classic()
+ggsave("epimutable_gene_pairs_observed_vs_1e4randomsets.pdf")
+
+
+
+
+
+```
+
+We can see this type of effect also when considering the genomic distances (bp) between epimutable genes.
+
+```{r comparing distance in bp}
+
+ggplot(data.frame(random_sets_distances))+geom_histogram(aes(x=random_sets_distances))+
+  coord_cartesian(xlim=c(100000,200000))+
+  geom_vline(xintercept = median(distance_distributions(epimut_genes_noiso)),col="red",linetype="dashed")+
+  xlab("median distance between consecutive epimutable genes")
+
+
+#distance distribution from real data
+ggplot(data.frame(distance_distributions(epimut_genes_noiso)))+geom_histogram(aes(x=distance_distributions.epimut_genes_noiso.),breaks=seq(0,2.6e6,by = 1.3e4))+
+  coord_cartesian(xlim=c(0,2.6e6),ylim=c(0,50))
+#distance distribution from random set
+ggplot(data.frame(distance_distributions(rand_set)))+geom_histogram(aes(x=distance_distributions.rand_set.),breaks=seq(0,2.6e6,by = 1.3e4))+
+  coord_cartesian(xlim=c(0,2.6e6),ylim=c(0,50))
+
+
+
+```
+
+
+We see a clear enrichment of neighbouring epimutable genes relative to what would be expected by chance - suggesting that spatial clustering effects exist in the system.
+Similarly, the median distance between neighbouring epimutable genes is smaller than would be expected by chance, and comparing the distance distributions between epimutable genes and genes selected randomly shows that epimutable genes are enriched in the lower range of distances.
+
+So with this we can conclude than genes subjected to epimutation tend to cluster more than expected - now the question is, do they epimutate in a coordinated manner?
+
+To test this, I will select neighbouring epimutable genes and do the following test:
+
+ - get pair of neighbouring genes and retrieve their high-low small RNA state values --> quantify number of coincident states in same sample 
+ - randomize their small RNA state values --> quantify expected number of coincident states 
+ - derive p-value --> multiple testing correction
+ 
+ Also a Pearson correlation test was applied to the count data of pairs of genes across samples --> quantify number of genes with significant r>0.75 correlations
+ 
+#with the full dataset
+ 
+```{r coordinated epimutations}
+ 
+epimut_genes_noiso
+gene_order_and_positions_epimutable<-gene_order_and_positions[which(gene_order_and_positions$cosmidID %in% epimut_genes_noiso),]
+gene_order_and_positions_epimutable[sort(unique(c(which(diff(gene_order_and_positions_epimutable$order_pos)==1),
+                                            which(diff(gene_order_and_positions_epimutable$order_pos)==1)+1))),]
+#52 genes in total
+#16 doublets
+#4 triplets
+#2 quadruplets
+
+data_for_geomcol<-data.frame(count=c(16,4,2),size=factor(c("pairs","triplets","quadruplets"),levels=c("pairs","triplets","quadruplets")))
+ggplot(data_for_geomcol)+geom_col(aes(y=count,x=size))+theme_classic()
+ggsave("epimutable_gene_pairs_groupsizes.pdf")
+
+#analysis by pairs (30 pairs)
+gene1<-gene_order_and_positions_epimutable$cosmidID[which(diff(gene_order_and_positions_epimutable$order_pos)==1)]
+gene2<-gene_order_and_positions_epimutable$cosmidID[which(diff(gene_order_and_positions_epimutable$order_pos)==1)+1]
+
+gene1_iso<-c()
+for (gene in gene1){
+  gene1_iso<-c(gene1_iso,as.character(iso_to_noiso[which(iso_to_noiso$noiso==gene),"iso"]))
+}
+gene2_iso<-c()
+for (gene in gene2){
+  gene2_iso<-c(gene2_iso,as.character(iso_to_noiso[which(iso_to_noiso$noiso==gene),"iso"]))
+}
+
+test_coepimutation<-function(gene1,gene2,epimut_data,ttg_normcounts){
+  
+  states_gene1<-epimut_data[toString(gene1),]
+  states_gene2<-epimut_data[toString(gene2),]
+  matching_states<-length(states_gene1)-sum(abs(states_gene1-states_gene2))
+  
+  counts_gene1<-as.numeric(ttg_normcounts[toString(gene1),])
+  counts_gene2<-as.numeric(ttg_normcounts[toString(gene2),])
+  corr<-cor.test(counts_gene1,counts_gene2)
+  
+  expected_matching_states<-rep(0,10000)
+  expected_corrs<-rep(0,10000)
+  for (i in seq(10000)){
+    random_states_gene1<-epimut_data[toString(gene1),][sample(seq(length(epimut_data[toString(gene1),])),size = length(epimut_data[toString(gene1),]),replace = FALSE)]
+    random_states_gene2<-epimut_data[toString(gene2),][sample(seq(length(epimut_data[toString(gene2),])),size = length(epimut_data[toString(gene2),]),replace = FALSE)]
+    expected_matching_states[i]<-(length(random_states_gene1)-sum(abs(random_states_gene1-random_states_gene2)))
+    
+    random_counts_gene1<-as.numeric(ttg_normcounts[toString(gene1),][sample(seq(length(epimut_data[toString(gene1),])),size = length(epimut_data[toString(gene1),]),replace = FALSE)])
+    random_counts_gene2<-as.numeric(ttg_normcounts[toString(gene2),][sample(seq(length(epimut_data[toString(gene2),])),size = length(epimut_data[toString(gene2),]),replace = FALSE)])
+    expected_corrs[i]<-cor(random_counts_gene1,random_counts_gene2)
+    }
+  
+  return(c(toString(gene1),length(which(states_gene1==2)),toString(gene2),length(which(states_gene2==2)),matching_states,ncol(epimut_data),(length(which(expected_matching_states>=matching_states))+1)/length(expected_matching_states),as.numeric(corr$estimate),corr$p.value,(length(which(expected_corrs>=corr$estimate))+1)/length(expected_corrs)))
+}
+
+
+#example
+test_coepimutation(gene1_iso[1],gene2_iso[1],epimut_data,ttg_normcounts)
+
+test_coepimutation_results<-c()
+for (i in seq(length(gene1_iso))){
+  test_coepimutation_results<-rbind(test_coepimutation_results,test_coepimutation(gene1_iso[i],gene2_iso[i],epimut_data,ttg_normcounts))
+}
+colnames(test_coepimutation_results)<-c("gene1","gene1_up","gene2","gene2_up","matching states","total samples","sim_pvalue","pearson_r","pearson_pvalue","corrsim_pvalue")
+test_coepimutation_results<-data.frame(test_coepimutation_results)
+
+#sim test
+test_coepimutation_results$sim_pvalue<-as.numeric(as.character(test_coepimutation_results$sim_pvalue))
+test_coepimutation_results$sim_fdr<-p.adjust(test_coepimutation_results$sim_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results))+geom_histogram(aes(x=sim_fdr))+ggtitle("simulation test")
+length(which(test_coepimutation_results$sim_fdr<0.1))
+length(which(test_coepimutation_results$sim_fdr<0.2))
+
+#pearson test
+test_coepimutation_results$pearson_pvalue<-as.numeric(as.character(test_coepimutation_results$pearson_pvalue))
+test_coepimutation_results$pearson_fdr<-p.adjust(test_coepimutation_results$pearson_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results))+geom_histogram(aes(x=pearson_fdr))+ggtitle("Pearson correlation test")
+length(which(test_coepimutation_results$pearson_fdr<0.1 & as.numeric(as.character(test_coepimutation_results$pearson_r>0.75))))
+
+#correlation sim test
+test_coepimutation_results$corrsim_pvalue<-as.numeric(as.character(test_coepimutation_results$corrsim_pvalue))
+test_coepimutation_results$corrsim_fdr<-p.adjust(test_coepimutation_results$corrsim_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results))+geom_histogram(aes(x=corrsim_fdr))+ggtitle("correlation simulation test")
+length(which(test_coepimutation_results$corrsim_fdr<0.1))
+length(which(test_coepimutation_results$corrsim_fdr<0.2))
+
+test_coepimutation_results
+
+
+```
+
+#with data from gen 25-100 only
+
+```{r gens 25 100}
+
+epimut_data_gens25_100<-epimut_data[,25:47]
+ttg_normcounts_gens25_100<-ttg_normcounts[,25:47]
+
+test_coepimutation_results_gens25_100<-c()
+for (i in seq(length(gene1_iso))){
+  test_coepimutation_results_gens25_100<-rbind(test_coepimutation_results_gens25_100,test_coepimutation(gene1_iso[i],gene2_iso[i],epimut_data_gens25_100,ttg_normcounts_gens25_100))
+}
+colnames(test_coepimutation_results_gens25_100)<-c("gene1","gene1_up","gene2","gene2_up","matching states","total samples","sim_pvalue","pearson_r","pearson_pvalue","corrsim_pvalue")
+test_coepimutation_results_gens25_100<-data.frame(test_coepimutation_results_gens25_100)
+
+
+#sim test
+test_coepimutation_results_gens25_100$sim_pvalue<-as.numeric(as.character(test_coepimutation_results_gens25_100$sim_pvalue))
+test_coepimutation_results_gens25_100$sim_fdr<-p.adjust(test_coepimutation_results_gens25_100$sim_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results_gens25_100))+geom_histogram(aes(x=sim_fdr))+ggtitle("simulation test")
+length(which(test_coepimutation_results_gens25_100$sim_fdr<0.1))
+length(which(test_coepimutation_results_gens25_100$sim_fdr<0.2))
+
+#pearson test
+test_coepimutation_results_gens25_100$pearson_pvalue<-as.numeric(as.character(test_coepimutation_results_gens25_100$pearson_pvalue))
+test_coepimutation_results_gens25_100$pearson_fdr<-p.adjust(test_coepimutation_results_gens25_100$pearson_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results_gens25_100))+geom_histogram(aes(x=pearson_fdr))+ggtitle("Pearson correlation test")
+length(which(test_coepimutation_results_gens25_100$pearson_fdr<0.1 & as.numeric(as.character(test_coepimutation_results_gens25_100$pearson_r>0.75))))
+
+#correlation sim test
+test_coepimutation_results_gens25_100$corrsim_pvalue<-as.numeric(as.character(test_coepimutation_results_gens25_100$corrsim_pvalue))
+test_coepimutation_results_gens25_100$corrsim_fdr<-p.adjust(test_coepimutation_results_gens25_100$corrsim_pvalue,method = "fdr")
+ggplot(data.frame(test_coepimutation_results_gens25_100))+geom_histogram(aes(x=corrsim_fdr))+ggtitle("correlation simulation test")
+length(which(test_coepimutation_results_gens25_100$corrsim_fdr<0.1))
+length(which(test_coepimutation_results_gens25_100$corrsim_fdr<0.2))
+
+test_coepimutation_results_gens25_100
+
+
+```
+
+
+
+```{r plot all cases}
+
+toplot<-test_coepimutation_results_gens25_100[which(as.numeric(as.character(test_coepimutation_results_gens25_100$pearson_r))>0.75),c("gene1","gene2")]
+ticks<-colnames(ttg_normcounts)
+
+
+for (row in seq(nrow(toplot))){
+  
+  gene1<-as.character(toplot[row,"gene1"]); gene2<-as.character(toplot[row,"gene2"])
+
+  print(paste(gene1,gene2,sep=" - "))
+  
+  pdf(paste(paste(paste("correlated_epimutations_examples/",gene1,sep=""),gene2,sep="_vs_"),"pdf",sep="."))
+  plot(as.numeric(ttg_normcounts[gene1,25:47]),as.numeric(ttg_normcounts[gene2,25:47]),xlab=paste("22G-RNA normalized counts in ",gene1,sep=""),
+       ylab=paste("22G-RNA normalized counts in ",gene2,sep=""),pch=16)
+  dev.off()
+  
+plot(as.numeric(ttg_normcounts[gene1,25:47]),as.numeric(ttg_normcounts[gene2,25:47]),xlab=paste("22G-RNA normalized counts in ",gene1,sep=""),
+       ylab=paste("22G-RNA normalized counts in ",gene2,sep=""),pch=16)
+  
+  pdf(paste(paste("correlated_epimutations_examples/",gene1,sep=""),"pdf",sep="."))
+  plot(1:23,c(as.numeric(ttg_normcounts[gene1,36]),as.numeric(ttg_normcounts[gene1,25:35]),as.numeric(ttg_normcounts[gene1,37:47])),main=gene1,
+       xaxt="n",ylab="normalized 22G-RNA counts",xlab="line",pch=16)
+  axis(1, at=1:23, labels=ticks[c(36,25:35,37:47)],las=2)
+  dev.off()
+  
+plot(1:23,c(as.numeric(ttg_normcounts[gene1,36]),as.numeric(ttg_normcounts[gene1,25:35]),as.numeric(ttg_normcounts[gene1,37:47])),main=gene1,
+       xaxt="n",ylab="normalized 22G-RNA counts",xlab="line",pch=16)
+  axis(1, at=1:23, labels=ticks[c(36,25:35,37:47)],las=2)
+
+  
+  pdf(paste(paste("correlated_epimutations_examples/",gene2,sep=""),"pdf",sep="."))
+  plot(1:23,c(as.numeric(ttg_normcounts[gene2,36]),as.numeric(ttg_normcounts[gene2,25:35]),as.numeric(ttg_normcounts[gene2,37:47])),col="red",main=gene2,
+       xaxt="n",ylab="normalized 22G-RNA counts",xlab="line",pch=16)
+  axis(1, at=1:23, labels=ticks[c(36,25:35,37:47)],las=2)
+  dev.off()
+  
+plot(1:23,c(as.numeric(ttg_normcounts[gene2,36]),as.numeric(ttg_normcounts[gene2,25:35]),as.numeric(ttg_normcounts[gene2,37:47])),col="red",main=gene2,
+       xaxt="n",ylab="normalized 22G-RNA counts",xlab="line",pch=16)
+       axis(1, at=1:23, labels=ticks[c(36,25:35,37:47)],las=2)
+
+}
+
+
+``` 
+
+
+I checked whether these pairs tend to be in the same operon, and only two pairs out of 30 were - (F42G8.5-F42G8.4 and W01A11.6-W01A11.7) - and these two pairs have low 22G-RNA correlations across samples (0.17 and 0.21). So there is little evidence of spreading of silencing through operons in this dataset. In fact, most operons are enriched in active chromatin domains that tend to be devoid of epimutations. So perhaps the clustering we see is due to chromatin-based spreading.
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+

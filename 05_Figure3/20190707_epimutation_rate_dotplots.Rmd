@@ -1,0 +1,88 @@
+---
+title: "2019_07_06_epimutation_rate_estimate_genbygen"
+author: "Toni Beltran"
+date: "06/07/2019"
+output: html_document
+---
+
+# Epimutation rate estimates in both lineages
+
+Calculated from the epimutation summary tables generated in the segmentation analyses.
+
+
+```{r cars}
+
+library(ggplot2)
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/05_Figure3/")
+
+#epimutation rate
+
+#kmeans
+kmeans_A<-read.table("epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4_noiso.txt")
+kmeans_B<-read.table("epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4_noiso.txt")
+kmeans_A$stgen<-factor(kmeans_A$stgen, levels =c(1:6,8:12))
+kmeans_B$stgen<-factor(kmeans_B$stgen, levels =c(1:6,8:12))
+
+kmeans_epi_rate<-data.frame(epis=c(table(kmeans_A$stgen),table(kmeans_B$stgen)),
+                            lineage=c(rep("A",11),rep("B",11)))
+kmeans_epi_rate$epis<-as.numeric(kmeans_epi_rate$epis)
+kmeans_epi_rate$dummy<-rep(1,22)
+
+
+ggplot(kmeans_epi_rate,aes(y=epis,x=lineage,fill=lineage,color=lineage))+geom_dotplot(binaxis = "y", stackdir = "center")+stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,geom = "crossbar", width = 0.5)
+
+ggplot(kmeans_epi_rate)+geom_boxplot(aes(y=epis,x=lineage))
+
+ggplot(kmeans_epi_rate)+geom_dotplot(aes(y=epis,x=dummy),binaxis = "y", stackdir = "center")
+ggplot(kmeans_epi_rate)+geom_boxplot(aes(y=epis))
+
+
+#HMM
+hmm_A<-read.table("epimut_duration_batchremoved_hmm_linA_JOINT_p1e-4_noiso.txt",header=TRUE)
+hmm_B<-read.table("epimut_duration_batchremoved_hmm_linB_JOINT_p1e-4_noiso.txt",header=TRUE)
+
+hmm_epi_rate<-data.frame(epis=c(table(hmm_A$stgen),table(hmm_B$stgen)),
+                            lineage=c(rep("A",11),rep("B",11)))
+hmm_epi_rate$epis<-as.numeric(hmm_epi_rate$epis)
+hmm_epi_rate$dummy<-rep(1,22)
+
+
+ggplot(hmm_epi_rate)+geom_dotplot(aes(y=epis,x=lineage),binaxis = "y", stackdir = "center")
+ggplot(hmm_epi_rate)+geom_boxplot(aes(y=epis,x=lineage))
+
+ggplot(hmm_epi_rate)+geom_dotplot(aes(y=epis,x=dummy),binaxis = "y", stackdir = "center")
+ggplot(hmm_epi_rate)+geom_boxplot(aes(y=epis))
+
+
+```
+
+
+```{r include up and down}
+
+
+#epimutation rate
+
+#kmeans
+kmeans_A_up<-kmeans_A[which(kmeans_A$up_or_down==2),]
+kmeans_B_up<-kmeans_B[which(kmeans_B$up_or_down==2),]
+kmeans_A_down<-kmeans_A[which(kmeans_A$up_or_down==1),]
+kmeans_B_down<-kmeans_B[which(kmeans_B$up_or_down==1),]
+
+kmeans_epi_rate<-data.frame(epis=c(table(kmeans_A$stgen),table(kmeans_B$stgen),table(kmeans_A_up$stgen),table(kmeans_B_up$stgen),table(kmeans_A_down$stgen),table(kmeans_B_down$stgen)),
+                            lineage=rep(c(rep("A",11),rep("B",11)),3),
+                            upordown=c(rep("all",22),rep("up",22),rep("down",22)))
+kmeans_epi_rate$epis<-as.numeric(kmeans_epi_rate$epis)
+
+
+ggplot(kmeans_epi_rate,aes(y=epis,x=lineage,fill=upordown,color=upordown))+geom_dotplot(binaxis = "y", stackdir = "center",position="dodge",binwidth=1)+
+  theme_classic()+
+  coord_fixed(ratio = 0.05)+
+  stat_summary(fun.y = median, fun.ymin = median, fun.ymax = median,geom = "crossbar", width = 0.2)
+ggsave("kmeans_epimutation_rates_up_and_down_withmedians.pdf",dpi="retina")
+
+
+kmeans_epi_rate
+```
+
+

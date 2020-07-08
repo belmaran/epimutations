@@ -1,0 +1,88 @@
+---
+title: "2019_03_05_comparing_survival_bymethod"
+author: "Toni Beltran"
+date: "03/05/2019"
+output: html_document
+---
+
+
+```{r load epimut duration data}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/05_Figure3/")
+
+duration_hmm_A<-read.table("epimut_duration_batchremoved_HMM_linA_JOINT_p1e-4.txt",header=TRUE); duration_hmm_A$lineage<-rep("A",nrow(duration_hmm_A))
+duration_hmm_B<-read.table("epimut_duration_batchremoved_HMM_linB_JOINT_p1e-4.txt",header=TRUE); duration_hmm_B$lineage<-rep("B",nrow(duration_hmm_B))
+duration_kmeans_A<-read.table("epimut_duration_batchremoved_kmeans_linA_JOINT_p1e-4.txt",header=TRUE); duration_kmeans_A$lineage<-rep("A",nrow(duration_kmeans_A))
+duration_kmeans_B<-read.table("epimut_duration_batchremoved_kmeans_linB_JOINT_p1e-4.txt",header=TRUE); duration_kmeans_B$lineage<-rep("B",nrow(duration_kmeans_B))
+duration_logfc<-read.table("logfc_duration_data.txt"); duration_logfc$lineage<-c(rep("A",137),rep("B",125))
+
+duration_hmm<-rbind(duration_hmm_A,duration_hmm_B)
+duration_kmeans<-rbind(duration_kmeans_A,duration_kmeans_B)
+
+duration_logfc$method<-rep("logfc",nrow(duration_logfc))
+duration_hmm$method<-rep("hmm",nrow(duration_hmm))
+duration_kmeans$method<-rep("kmeans",nrow(duration_kmeans))
+
+duration_all<-rbind(duration_logfc,duration_hmm, duration_kmeans)
+
+nrow(duration_kmeans)
+nrow(duration_hmm)
+nrow(duration_logfc)
+
+table(duration_kmeans$completeness)
+table(duration_hmm$completeness)
+table(duration_logfc$completeness)
+
+
+merge(duration_kmeans[,c("ID","stgen","duration","lineage")],duration_hmm[,c("ID","stgen","duration","lineage")],by=c("ID","stgen","duration","lineage"))
+#142 in common between k-means (520) and hmm (356)
+
+merge(duration_kmeans[,c("ID","stgen","duration","lineage")],duration_logfc[,c("ID","stgen","duration","lineage")],by=c("ID","stgen","duration","lineage"))
+#86 in common between k-means (520) and logfc (262)
+
+merge(duration_hmm[,c("ID","stgen","duration","lineage")],duration_logfc[,c("ID","stgen","duration","lineage")],by=c("ID","stgen","duration","lineage"))
+#83 in common between hmm (356) and logfc (262)
+
+merge(merge(duration_kmeans[,c("ID","stgen","duration","lineage")],duration_hmm[,c("ID","stgen","duration","lineage")],by=c("ID","stgen","duration","lineage")),
+      duration_logfc[,c("ID","stgen","duration","lineage")])
+
+
+duration_kmeans[which(duration_kmeans$ID=="B0348.5a"),]
+duration_hmm[which(duration_hmm$ID=="B0285.7"),]
+
+duration_kmeans[which(duration_kmeans$ID %in% names(which(table(duration_kmeans$ID)>7))),]
+
+for (gene in names(which(table(duration_kmeans$ID)>0))){
+  plot(1:24,ttg_DEseqnorm[gene,1:24],main=gene)
+  plot(1:24,kmeans_clusters_both_experiments[gene,1:24],main=paste("kmeans",gene,sep=" "))
+  plot(1:24,hmm_segmentation[gene,1:24],main=paste("hmm",gene,sep=" "))
+}
+
+```
+
+
+```{r survival}
+
+library(survival)
+library(survminer)
+
+surv_object<-Surv(duration_all$duration,duration_all$completeness,type = "right")
+
+fit_noresponse<-survfit(surv_object~1)
+summary(fit_noresponse)
+ggsurvplot(fit_noresponse, data=duration_both,pval = TRUE)
+
+fit_method<-survfit(surv_object~method,data=duration_all)
+summary(fit_method)
+ggsurvplot(fit_method, data=duration_all,pval = TRUE)
+ggsave("survival_curves_by_method_p1e-4.pdf")
+
+
+print(fit_method)
+
+
+
+```
+
+
+

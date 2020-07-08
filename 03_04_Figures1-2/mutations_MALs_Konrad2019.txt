@@ -1,0 +1,1112 @@
+1A I 1,614,173 C -› A 1.00 Intron - Arm YES
+1A I 2,635,482 T -› A 1.00 IG - Arm -
+1A I 3,428,758 A -› G 1.00 Intron - Arm NO
+1A I 3,428,774 G -› A 1.00 Intron - Arm NO
+1A I 3,539,634 T -› C 1.00 UTR - Arm NO
+1A I 3,836,097 C -› G 1.00 Intron - Arm NO
+1A I 9,513,588 G -› T 1.00 Exon S -› I Core YES
+1A I 11,218,117 C -› A 1.00 Exon Q -› H Arm YES
+1A I 11,872,374 A -› T 1.00 IG - Arm -
+1A I 12,863,948 T -› A 1.00 IG - Arm -
+1A II 198,360 T -› A 1.00 Intron - Tip NO
+1A II 1,811,230 G -› A 1.00 IG - Arm -
+1A II 2,700,042 A -› T 1.00 Exon M -› K Arm NO
+1A II 3,006,241 C -› A 1.00 Exon T -› K Arm NO
+1A II 9,790,063 C -› T 1.00 Intron - Core NO
+1A II 10,029,300 A -› T 1.00 IG - Core -
+1A II 10,396,854 T -› A 1.00 IG - Core -
+1A II 10,486,641 C -› T 1.00 IG - Core -
+1A II 11,162,820 A -› G 1.00 IG - Core -
+1A II 12,077,085 A -› T 1.00 Intron - Arm YES
+1A II 13,990,790 T -› C 1.00 Intron - Arm NO
+1A II 14,143,561 C -› T 1.00 Exon R -› Q Arm NO
+1A II 14,165,281 T -› A 1.00 Intron - Arm YES
+1A II 14,398,763 A -› T 1.00 Exon Synonymous Arm YES
+1A III 1,547,877 C -› G 1.00 Intron - Arm YES
+1A III 1,767,549 C -› T 1.00 Intron - Arm NO
+1A III 3,105,822 G -› C 1.00 IG - Arm -
+1A III 3,640,505 A -› T 1.00 Intron - Arm YES
+1A III 3,775,915 T -› A 1.00 Intron - Core NO
+1A III 4,601,518 C -› T 1.00 Intron - Core NO
+1A III 5,443,629 T -› G 1.00 Intron - Core YES
+1A III 6,087,993 G -› A 1.00 IG - Core -
+1A III 9,804,755 A -› T 1.00 Intron - Core YES
+1A III 9,923,413 C -› T 1.00 Exon Synonymous Core NO
+1A III 10,387,584 A -› T 1.00 IG - Arm -
+1A III 11,592,329 A -› G 1.00 Intron - Arm YES
+1A III 11,772,330 T -› A 1.00 Intron - Arm NO
+1A III 13,632,289 A -› T 1.00 IG - Tip -
+1A IV 312,364 A -› C 1.00 Intron - Tip NO
+1A IV 518,660 G -› T 1.00 Exon Q -› K Tip YES
+1A IV 2,291,624 T -› A 1.00 Intron - Arm NO
+1A IV 2,976,203 A -› C 1.00 Intron - Arm NO
+1A IV 9,352,379 T -› C 1.00 Exon S -› G Core NO
+1A IV 12,970,119 T -› G 1.00 IG - Core -
+1A IV 13,192,811 C -› A 1.00 Intron - Arm NO
+1A IV 15,898,096 C -› T 1.00 IG - Arm -
+1A V 110,366 G -› A 1.00 Intron - Tip NO
+1A V 192,543 A -› T 1.00 Intron - Tip NO
+1A V 1,390,456 A -› T 1.00 IG - Arm -
+1A V 1,707,865 A -› G 1.00 IG - Arm -
+1A V 2,129,317 C -› T 1.00 Exon Synonymous Arm YES
+1A V 2,298,579 T -› A 1.00 IG - Arm -
+1A V 3,186,240 A -› C 1.00 IG - Arm -
+1A V 3,700,714 T -› A 1.00 Intron - Arm YES
+1A V 4,313,737 A -› C 1.00 Intron - Arm NO
+1A V 4,426,244 C -› T 1.00 Exon S -› N Arm NO
+1A V 7,409,034 T -› C 1.00 IG - Core -
+1A V 8,151,443 G -› A 1.00 IG - Core -
+1A V 9,970,453 C -› G 1.00 Exon E -› Q Core NO
+1A V 10,163,273 G -› T 1.00 IG - Core -
+1A V 17,809,028 C -› T 1.00 IG - Arm -
+1A V 18,076,226 T -› A 1.00 Intron - Arm NO
+1A X 765,242 C -› A 1.00 Exon L -› I Arm NO
+1A X 2,064,716 A -› T 1.00 IG - Arm -
+1A X 2,846,084 T -› G 1.00 Intron - Arm NO
+1A X 7,293,082 T -› A 1.00 Intron - Core NO
+1A X 7,871,646 G -› A 1.00 IG - Core -
+1A X 10,063,257 A -› T 1.00 Exon S -› R Core NO
+1A X 11,558,775 G -› T 1.00 Intron - Core NO
+1A X 11,676,739 A -› T 1.00 Intron - Core NO
+1A X 12,116,182 T -› A 1.00 IG - Core -
+1A X 12,403,734 T -› C 1.00 Intron - Core NO
+1A X 14,080,488 T -› A 1.00 Exon Synonymous Arm NO
+1A X 14,181,047 T -› A 1.00 Intron - Arm NO
+1A X 14,348,605 T -› A 1.00 IG - Arm -
+1A X 15,642,161 T -› A 1.00 Intron - Arm NO
+1A X 15,648,597 G -› A 1.00 Exon H -› Y Arm NO
+1A X 15,947,404 A -› T 1.00 Intron - Arm YES
+1A X 16,848,977 G -› A 1.00 Intron - Tip NO
+1A X 17,008,739 A -› G 1.00 IG - Tip -
+1B I 1,163,311 G -› C 1.00 Intron - Arm YES
+1B I 2,375,013 A -› T 1.00 IG - Arm -
+1B I 2,416,427 C -› T 1.00 Intron - Arm NO
+1B I 2,723,077 C -› T 1.00 Intron - Arm NO
+1B I 2,730,341 T -› A 1.00 Intron - Arm YES
+1B I 6,673,296 A -› T 1.00 IG - Core -
+1B I 6,897,517 A -› T 1.00 IG - Core -
+1B I 7,969,135 C -› T 1.00 Intron - Core YES
+1B I 8,044,661 A -› T 1.00 IG - Core -
+1B I 9,828,307 T -› A 1.00 IG - Core -
+1B I 9,997,853 G -› C 1.00 Intron - Core NO
+1B I 15,060,162 T -› C 1.00 IG - Tip -
+1B II 284,911 T -› A 1.00 Intron - Tip YES
+1B II 2,571,142 A -› T 1.00 Intron - Arm NO
+1B II 3,172,370 T -› A 1.00 IG - Arm -
+1B II 4,202,843 G -› A 1.00 Intron - Arm NO
+1B II 5,113,293 G -› T 1.00 Exon M -› I Core NO
+1B II 6,080,417 G -› A 1.00 Exon P -› S Core YES
+1B II 8,025,203 G -› C 1.00 Exon T -› S Core YES
+1B II 8,193,034 A -› T 1.00 Exon L -› H Core NO
+1B II 8,504,650 G -› C 1.00 Intron - Core NO
+1B II 13,110,614 A -› C 1.00 Intron - Arm YES
+1B II 13,743,226 T -› A 1.00 Intron - Arm YES
+1B II 13,915,900 T -› A 1.00 IG - Arm -
+1B II 15,227,788 A -› T 1.00 Intron - Tip YES
+1B III 1,496,668 C -› A 1.00 Intron - Arm NO
+1B III 1,632,871 T -› A 1.00 Intron - Arm NO
+1B III 4,041,177 A -› T 1.00 IG - Core -
+1B III 7,046,174 A -› C 1.00 IG - Core -
+1B III 9,792,030 A -› T 1.00 IG - Core -
+1B III 11,960,345 C -› G 1.00 IG - Arm -
+1B III 12,667,460 A -› T 1.00 IG - Arm -
+1B III 13,149,005 T -› A 1.00 Intron - Arm NO
+1B III 13,408,172 C -› T 1.00 Intron - Tip NO
+1B IV 185,026 C -› A 1.00 Intron - Tip NO
+1B IV 1,262,874 G -› A 1.00 Intron - Arm NO
+1B IV 2,229,696 G -› A 1.00 Intron - Arm NO
+1B IV 3,910,967 G -› T 1.00 IG - Core -
+1B IV 4,697,813 C -› T 1.00 Intron - Core YES
+1B IV 5,574,915 G -› T 1.00 IG - Core -
+1B IV 6,853,587 T -› A 1.00 Intron - Core NO
+1B IV 7,711,876 A -› T 1.00 Intron - Core NO
+1B IV 9,700,991 C -› A 1.00 Exon M -› I Core YES
+1B IV 10,454,177 A -› T 1.00 IG - Core -
+1B IV 10,975,455 G -› A 1.00 IG - Core -
+1B IV 11,026,480 A -› T 1.00 IG - Core -
+1B IV 11,120,361 A -› T 1.00 Intron - Core YES
+1B IV 12,962,361 C -› T 1.00 IG - Core -
+1B IV 13,748,073 T -› A 1.00 IG - Arm -
+1B IV 13,884,960 T -› A 1.00 IG - Arm -
+1B IV 13,955,463 A -› T 1.00 Intron - Arm NO
+1B IV 13,995,981 A -› C 1.00 Intron - Arm NO
+1B IV 14,588,016 C -› G 1.00 IG - Arm -
+1B IV 14,707,384 A -› T 1.00 IG - Arm -
+1B IV 15,436,273 T -› A 1.00 IG - Arm -
+1B IV 15,662,541 A -› T 1.00 IG - Arm -
+1B IV 15,771,205 G -› A 1.00 IG - Arm -
+1B IV 15,974,404 T -› C 1.00 IG - Arm -
+1B IV 16,465,039 A -› T 1.00 IG - Arm -
+1B V 123,853 T -› A 1.00 IG - Tip -
+1B V 173,626 G -› C 1.00 Intron - Tip YES
+1B V 352,703 A -› T 1.00 Intron - Tip YES
+1B V 1,392,512 C -› G 1.00 IG - Arm -
+1B V 1,702,445 T -› A 1.00 Intron - Arm NO
+1B V 3,191,356 C -› T 1.00 Exon D -› N Arm YES
+1B V 4,045,849 T -› A 1.00 IG - Arm -
+1B V 4,207,363 T -› A 1.00 Intron - Arm YES
+1B V 4,232,507 T -› A 1.00 IG - Arm -
+1B V 7,153,709 G -› A 1.00 IG - Core -
+1B V 7,192,372 G -› A 1.00 Intron - Core YES
+1B V 8,281,976 A -› T 1.00 Intron - Core NO
+1B V 8,593,544 A -› T 1.00 IG - Core -
+1B V 11,789,011 T -› G 1.00 Exon S -› A Core NO
+1B V 12,943,040 A -› G 1.00 Exon C -› R Core NO
+1B V 13,189,018 C -› T 1.00 Exon Synonymous Core NO
+1B V 17,029,971 C -› A 1.00 IG - Arm -
+1B V 17,605,664 A -› T 1.00 IG - Arm -
+1B V 19,078,331 G -› A 1.00 Exon S -› F Arm NO
+1B V 19,146,886 T -› A 1.00 Intron - Arm NO
+1B V 19,342,208 C -› T 1.00 Exon M -› I Arm NO
+1B V 20,222,004 G -› A 1.00 IG - Arm -
+1B X 151,756 A -› T 1.00 Intron - Tip NO
+1B X 1,522,750 C -› A 1.00 IG - Arm -
+1B X 2,863,493 A -› T 1.00 IG - Arm -
+1B X 5,955,277 T -› A 1.00 IG - Arm -
+1B X 6,388,846 C -› T 1.00 Intron - Core NO
+1B X 6,665,117 C -› T 1.00 Exon R -› H Core NO
+1B X 9,089,189 C -› T 1.00 Intron - Core NO
+1B X 9,150,386 T -› A 1.00 IG - Core -
+1B X 9,735,512 C -› T 1.00 Intron - Core NO
+1B X 9,941,989 T -› A 1.00 Intron - Core NO
+1B X 10,796,564 C -› T 1.00 Exon M -› I Core YES
+1B X 11,676,739 A -› T 1.00 Intron - Core NO
+1B X 12,418,098 C -› T 1.00 IG - Core -
+1B X 12,821,192 G -› A 1.00 IG - Arm -
+1B X 15,453,102 T -› A 1.00 IG - Arm -
+1B X 15,696,111 G -› C 1.00 Intron - Arm YES
+1B X 15,992,234 C -› T 1.00 Exon Synonymous Arm NO
+1B X 17,129,417 C -› T 1.00 IG - Tip -
+1C I 3,595,923 C -› A 1.00 Intron - Arm NO
+1C I 5,225,162 C -› A 1.00 IG - Core -
+1C I 11,596,610 T -› A 1.00 Intron - Arm NO
+1C I 12,169,542 T -› G 1.00 Intron - Arm NO
+1C I 12,229,062 A -› T 1.00 IG - Arm -
+1C I 12,857,783 T -› C 1.00 Intron - Arm YES
+1C I 13,865,832 C -› T 1.00 Intron - Arm NO
+1C II 1,485,038 C -› T 1.00 Intron - Arm NO
+1C II 3,158,506 T -› A 1.00 Exon R -› S Arm NO
+1C II 3,385,362 C -› T 1.00 Exon Synonymous Arm NO
+1C II 5,326,539 A -› C 1.00 Intron - Core YES
+1C II 7,788,228 A -› G 1.00 Exon F -› L Core NO
+1C II 9,321,110 G -› T 1.00 Exon V -› L Core NO
+1C II 14,237,779 A -› G 1.00 Exon V -› A Arm NO
+1C II 14,677,489 G -› T 1.00 Intron - Tip NO
+1C II 14,935,468 C -› T 1.00 Intron - Tip NO
+1C III 1,128,382 T -› C 1.00 Intron - Arm NO
+1C III 2,810,379 T -› A 1.00 Intron - Arm YES
+1C III 3,355,143 C -› A 1.00 Exon A -› E Arm NO
+1C III 4,585,649 T -› A 1.00 Intron - Core YES
+1C III 9,569,341 T -› C 1.00 Exon L -› P Core YES
+1C III 10,561,887 G -› T 1.00 IG - Arm -
+1C III 12,675,169 A -› T 1.00 Intron - Arm YES
+1C IV 1,164,740 G -› A 1.00 Exon Synonymous Arm NO
+1C IV 1,175,806 T -› A 1.00 Intron - Arm YES
+1C IV 3,163,445 C -› T 1.00 IG - Arm -
+1C IV 5,496,856 G -› A 1.00 Exon D -› N Core YES
+1C IV 5,668,339 T -› G 1.00 Intron - Core NO
+1C IV 7,608,648 C -› T 1.00 Exon S -› L Core NO
+1C IV 10,166,609 C -› T 1.00 Exon Synonymous Core YES
+1C IV 12,028,230 C -› T 1.00 Exon E -› K Core YES
+1C IV 13,333,889 T -› A 1.00 IG - Arm -
+1C V 714,404 A -› T 1.00 IG - Arm -
+1C V 1,014,530 T -› G 1.00 Intron - Arm YES
+1C V 3,045,563 C -› T 1.00 IG - Arm -
+1C V 4,293,336 G -› T 1.00 Exon C -› * Arm NO
+1C V 7,208,754 C -› T 1.00 Exon Synonymous Core YES
+1C V 10,612,744 C -› T 1.00 IG - Core -
+1C V 12,243,975 T -› A 1.00 Intron - Core YES
+1C V 15,249,726 A -› T 1.00 IG - Core -
+1C V 17,283,653 T -› A 1.00 IG - Arm -
+1C V 17,356,945 G -› T 1.00 Exon M -› I Arm NO
+1C V 18,604,560 A -› T 1.00 Intron - Arm NO
+1C V 18,942,224 G -› A 1.00 Exon E -› K Arm NO
+1C V 20,651,475 T -› A 1.00 IG - Tip -
+1C V 20,809,164 A -› T 1.00 Intron - Tip NO
+1C X 68,601 T -› A 1.00 IG - Tip -
+1C X 2,710,990 G -› C 1.00 Exon S -› W Arm NO
+1C X 3,295,090 C -› A 1.00 IG - Arm -
+1C X 9,216,237 T -› G 1.00 Intron - Core NO
+1C X 12,636,015 C -› T 1.00 IG - Arm -
+1C X 14,382,237 C -› A 1.00 IG - Arm -
+1C X 15,183,466 A -› G 1.00 IG - Arm -
+1C X 16,590,375 C -› A 1.00 IG - Tip -
+1C X 17,075,600 T -› C 1.00 Intron - Tip NO
+1D I 2,095,999 C -› T 1.00 IG - Arm -
+1D I 3,979,956 C -› A 1.00 IG - Core -
+1D I 4,826,333 C -› T 1.00 Intron - Core YES
+1D I 13,281,825 T -› A 1.00 Intron - Arm YES
+1D II 553,791 T -› A 1.00 Intron - Arm NO
+1D II 728,375 C -› G 1.00 Intron - Arm YES
+1D II 1,656,662 A -› T 1.00 Intron - Arm NO
+1D II 2,214,085 G -› T 1.00 IG - Arm -
+1D II 3,189,967 T -› C 1.00 Exon Synonymous Arm NO
+1D II 6,897,871 A -› G 1.00 IG - Core -
+1D II 7,330,365 G -› C 1.00 Exon L -› V Core NO
+1D II 7,727,737 A -› G 1.00 Intron - Core NO
+1D II 8,285,984 T -› A 1.00 IG - Core -
+1D II 11,700,436 C -› T 1.00 Intron - Core YES
+1D III 20,140 T -› A 1.00 IG - Tip -
+1D III 595,685 C -› T 1.00 Exon G -› S Arm NO
+1D III 1,632,871 T -› A 1.00 Intron - Arm NO
+1D III 2,561,601 C -› A 1.00 IG - Arm -
+1D III 3,633,004 T -› A 1.00 IG - Arm -
+1D III 5,035,795 G -› A 1.00 Exon Synonymous Core NO
+1D III 5,998,203 G -› A 1.00 Intron - Core YES
+1D III 7,002,782 G -› A 1.00 Intron - Core NO
+1D III 7,845,914 A -› T 1.00 IG - Core -
+1D III 12,477,018 T -› C 1.00 Intron - Arm NO
+1D III 12,925,442 T -› A 1.00 Intron - Arm NO
+1D III 13,109,981 T -› C 1.00 Intron - Arm NO
+1D III 13,131,284 G -› A 1.00 Intron - Arm NO
+1D IV 1,104,590 A -› C 1.00 Exon Y -› D Arm NO
+1D IV 3,059,225 G -› T 1.00 Intron - Arm YES
+1D IV 7,308,281 C -› G 1.00 Exon Q -› E Core NO
+1D IV 7,406,240 C -› T 1.00 Intron - Core NO
+1D IV 8,720,097 C -› A 1.00 IG - Core -
+1D IV 11,007,900 C -› T 1.00 IG - Core -
+1D IV 11,149,383 A -› T 1.00 Intron - Core YES
+1D IV 11,531,397 A -› T 1.00 Intron - Core NO
+1D IV 12,234,271 C -› T 1.00 Exon Synonymous Core NO
+1D IV 12,301,300 A -› T 1.00 IG - Core -
+1D IV 17,014,003 G -› T 1.00 Intron - Tip YES
+1D V 2,081,125 T -› A 1.00 IG - Arm -
+1D V 3,477,601 C -› A 1.00 IG - Arm -
+1D V 3,838,012 G -› A 1.00 IG - Arm -
+1D V 5,384,593 T -› G 1.00 IG - Arm -
+1D V 16,440,292 T -› A 1.00 IG - Core -
+1D V 16,814,180 A -› T 1.00 Exon I -› F Arm YES
+1D V 19,269,391 T -› A 1.00 Intron - Arm NO
+1D V 19,495,953 C -› T 1.00 IG - Arm -
+1D V 19,779,939 G -› A 1.00 IG - Arm -
+1D V 20,315,822 A -› T 1.00 IG - Arm -
+1D X 2,137,944 T -› G 1.00 IG - Arm -
+1D X 2,477,766 G -› T 1.00 Intron - Arm NO
+1D X 2,903,082 C -› T 1.00 IG - Arm -
+1D X 6,877,978 A -› T 1.00 IG - Core -
+1D X 6,997,743 T -› C 1.00 Exon Synonymous Core NO
+1D X 7,637,935 G -› T 1.00 IG - Core -
+1D X 9,039,668 G -› A 1.00 IG - Core -
+1D X 10,664,326 C -› A 1.00 Intron - Core NO
+1D X 11,676,739 A -› T 1.00 Intron - Core NO
+1D X 15,047,070 C -› T 1.00 IG - Arm -
+1D X 16,071,411 G -› A 1.00 IG - Arm -
+1E I 251,680 G -› C 1.00 IG - Tip -
+1E I 637,219 A -› T 1.00 Intron - Arm YES
+1E I 972,206 A -› G 1.00 Intron - Arm NO
+1E I 1,205,037 A -› T 1.00 Intron - Arm NO
+1E I 1,248,429 T -› A 1.00 Intron - Arm YES
+1E I 2,413,129 G -› T 1.00 IG - Arm -
+1E I 2,753,496 G -› C 1.00 IG - Arm -
+1E I 3,066,117 T -› A 1.00 Intron - Arm YES
+1E I 4,993,905 C -› T 1.00 Intron - Core NO
+1E I 9,932,451 A -› T 1.00 Exon L -› M Core YES
+1E I 10,236,853 A -› T 1.00 IG - Core -
+1E I 11,031,429 A -› T 1.00 IG - Core -
+1E I 11,221,576 G -› T 1.00 Exon A -› D Arm YES
+1E I 11,331,428 G -› T 1.00 Intron - Arm YES
+1E I 11,615,723 G -› A 1.00 Intron - Arm YES
+1E I 12,834,111 G -› C 1.00 Exon Synonymous Arm NO
+1E II 232,835 A -› T 1.00 IG - Tip -
+1E II 794,792 T -› A 1.00 IG - Arm -
+1E II 2,408,992 A -› G 1.00 IG - Arm -
+1E II 2,494,314 T -› C 1.00 Intron - Arm NO
+1E II 3,128,378 G -› A 1.00 IG - Arm -
+1E II 3,135,375 A -› T 1.00 IG - Arm -
+1E II 5,418,243 A -› T 1.00 Intron - Core NO
+1E II 8,332,679 C -› T 1.00 Exon Synonymous Core NO
+1E II 8,831,568 T -› G 1.00 IG - Core -
+1E II 14,487,298 G -› T 1.00 Exon Q -› K Arm YES
+1E III 696,286 C -› A 1.00 Intron - Arm NO
+1E III 3,079,453 C -› T 1.00 Intron - Arm YES
+1E III 4,838,033 G -› A 1.00 Intron - Core NO
+1E III 6,456,744 A -› G 1.00 Intron - Core YES
+1E III 6,679,856 T -› G 1.00 Intron - Core NO
+1E III 7,326,059 C -› G 1.00 Intron - Core YES
+1E III 8,178,441 A -› T 1.00 IG - Core -
+1E III 10,274,195 T -› A 1.00 Intron - Core NO
+1E III 10,997,064 A -› T 1.00 IG - Arm -
+1E III 11,319,647 A -› T 1.00 Intron - Arm YES
+1E III 12,563,346 G -› A 1.00 Intron - Arm NO
+1E III 13,022,142 T -› A 1.00 Intron - Arm NO
+1E IV 3,187,028 C -› T 1.00 Intron - Arm NO
+1E IV 5,132,644 A -› T 1.00 Intron - Core YES
+1E IV 5,230,525 G -› C 1.00 IG - Core -
+1E IV 10,593,437 T -› C 1.00 Intron - Core NO
+1E IV 13,257,214 A -› G 1.00 Exon * -› W Arm NO
+1E IV 13,347,593 C -› T 1.00 IG - Arm -
+1E IV 13,389,700 A -› T 1.00 Intron - Arm YES
+1E IV 14,249,538 T -› A 1.00 Intron - Arm NO
+1E IV 15,124,561 T -› G 1.00 IG - Arm -
+1E V 1,241,169 G -› A 1.00 IG - Arm -
+1E V 6,706,759 G -› A 1.00 Exon T -› M Core YES
+1E V 7,249,869 T -› G 1.00 IG - Core -
+1E V 8,460,300 C -› G 1.00 Exon Synonymous Core YES
+1E V 8,460,376 C -› G 1.00 Exon * -› S Core YES
+1E V 9,314,410 C -› A 1.00 IG - Core -
+1E V 9,561,612 C -› T 1.00 Exon D -› N Core NO
+1E V 13,707,003 A -› T 1.00 Intron - Core NO
+1E V 14,192,546 A -› G 1.00 IG - Core -
+1E V 15,421,230 C -› A 1.00 IG - Core -
+1E V 16,111,693 C -› G 1.00 IG - Core -
+1E V 17,703,601 A -› T 1.00 IG - Arm -
+1E V 17,784,209 C -› T 1.00 IG - Arm -
+1E V 18,410,506 A -› T 1.00 IG - Arm -
+1E V 18,581,126 C -› A 1.00 IG - Arm -
+1E V 19,529,232 T -› C 1.00 Intron - Arm YES
+1E V 20,444,134 C -› A 1.00 IG - Tip -
+1E V 20,916,217 C -› A 1.00 Intron - Tip NO
+1E X 103,644 T -› A 1.00 Intron - Tip NO
+1E X 1,398,550 G -› T 1.00 IG - Arm -
+1E X 1,479,564 A -› G 1.00 Exon K -› R Arm YES
+1E X 3,251,915 T -› G 1.00 IG - Arm -
+1E X 6,531,949 A -› T 1.00 IG - Core -
+1E X 6,819,578 G -› A 1.00 Exon E -› K Core YES
+1E X 7,150,852 C -› A 1.00 Intron - Core NO
+1E X 7,429,166 C -› A 1.00 IG - Core -
+1E X 8,464,884 G -› A 1.00 IG - Core -
+1E X 13,245,730 C -› T 1.00 Intron - Arm NO
+1E X 13,839,187 G -› A 1.00 IG - Arm -
+1F I 171,651 T -› A 1.00 Intron - Tip NO
+1F I 3,102,740 A -› G 1.00 IG - Arm -
+1F I 3,521,581 G -› A 1.00 Exon Synonymous Arm YES
+1F I 5,977,894 G -› A 1.00 IG - Core -
+1F I 7,145,739 A -› G 1.00 Intron - Core NO
+1F I 10,197,695 T -› A 1.00 IG - Core -
+1F I 11,272,910 T -› C 1.00 Intron - Arm NO
+1F I 11,497,983 C -› T 1.00 IG - Arm -
+1F I 13,796,515 C -› A 1.00 Exon K -› N Arm NO
+1F II 2,185,717 G -› A 1.00 Exon Q -› * Arm NO
+1F II 5,082,206 A -› G 1.00 Exon * -› R Core YES
+1F II 6,171,848 C -› A 1.00 Intron - Core NO
+1F II 6,711,523 A -› T 1.00 Intron - Core NO
+1F II 7,737,285 G -› A 1.00 Exon E -› K Core NO
+1F II 8,166,824 A -› T 1.00 Exon K -› I Core YES
+1F II 8,381,863 T -› A 1.00 Exon F -› Y Core NO
+1F II 12,687,165 T -› A 1.00 IG - Arm -
+1F II 13,366,344 C -› A 1.00 IG - Arm -
+1F III 308,488 T -› G 1.00 Intron - Tip YES
+1F III 432,699 C -› A 1.00 IG - Tip -
+1F III 1,222,433 C -› A 1.00 IG - Arm -
+1F III 2,414,652 T -› A 1.00 Intron - Arm YES
+1F III 2,907,539 T -› A 1.00 IG - Arm -
+1F III 3,177,361 G -› A 1.00 Intron - Arm YES
+1F III 4,387,331 T -› A 1.00 Intron - Core NO
+1F III 6,160,340 C -› G 1.00 Exon H -› Q Core NO
+1F III 7,727,248 C -› T 1.00 Exon T -› M Core YES
+1F III 7,940,973 A -› G 1.00 IG - Core -
+1F III 9,777,946 C -› A 1.00 Exon S -› Y Core YES
+1F III 12,203,761 T -› A 1.00 IG - Arm -
+1F III 12,280,283 T -› A 1.00 Intron - Arm YES
+1F III 12,532,807 C -› G 1.00 IG - Arm -
+1F IV 1,089,259 G -› A 1.00 Exon P -› S Arm YES
+1F IV 1,293,418 A -› G 1.00 Intron - Arm NO
+1F IV 1,542,774 G -› T 1.00 IG - Arm -
+1F IV 3,057,838 A -› T 1.00 Intron - Arm YES
+1F IV 3,095,681 A -› C 1.00 IG - Arm -
+1F IV 4,324,054 T -› A 1.00 IG - Core -
+1F IV 11,746,147 T -› C 1.00 Exon W -› R Core NO
+1F IV 14,800,272 A -› T 1.00 Intron - Arm YES
+1F IV 16,723,515 A -› C 1.00 Exon K -› Q Arm NO
+1F IV 17,377,931 C -› T 1.00 Exon Synonymous Tip NO
+1F V 402,505 A -› T 1.00 Exon * -› K Tip NO
+1F V 1,344,457 G -› T 1.00 Intron - Arm NO
+1F V 2,196,919 C -› T 1.00 IG - Arm -
+1F V 3,106,349 A -› C 1.00 Intron - Arm NO
+1F V 5,095,679 T -› C 1.00 Intron - Arm NO
+1F V 5,113,697 T -› A 1.00 Exon E -› D Arm YES
+1F V 5,163,362 C -› T 1.00 IG - Arm -
+1F V 5,257,741 T -› A 1.00 IG - Arm -
+1F V 5,641,993 A -› T 1.00 IG - Arm -
+1F V 6,359,188 A -› C 1.00 Exon Q -› H Core NO
+1F V 6,361,381 C -› A 1.00 Exon A -› E Core NO
+1F V 7,017,836 A -› G 1.00 Intron - Core NO
+1F V 12,102,261 A -› T 1.00 Intron - Core NO
+1F V 14,443,599 T -› C 1.00 Intron - Core YES
+1F V 15,075,714 C -› G 1.00 Intron - Core YES
+1F V 15,168,294 A -› T 1.00 IG - Core -
+1F V 19,901,343 C -› T 1.00 Exon R -› Q Arm YES
+1F X 735,910 T -› C 1.00 IG - Arm -
+1F X 789,938 A -› T 1.00 Exon * -› L Arm NO
+1F X 2,581,254 T -› A 1.00 IG - Arm -
+1F X 2,795,833 C -› G 1.00 Intron - Arm YES
+1F X 4,150,818 A -› G 1.00 Intron - Arm NO
+1F X 5,915,913 G -› A 1.00 IG - Arm -
+1F X 15,628,882 T -› A 1.00 Intron - Arm NO
+1F X 17,207,171 G -› A 1.00 Intron - Tip NO
+1G I 297,975 G -› T 1.00 Intron - Tip YES
+1G I 3,166,976 T -› A 1.00 Intron - Arm YES
+1G I 8,333,167 T -› A 1.00 Exon L -› * Core NO
+1G I 8,362,762 T -› C 1.00 Intron - Core YES
+1G I 12,097,019 G -› A 1.00 Intron - Arm NO
+1G II 2,048,407 A -› T 1.00 IG - Arm -
+1G II 2,206,897 G -› T 1.00 IG - Arm -
+1G II 2,375,834 G -› A 1.00 Exon G -› D Arm NO
+1G II 8,050,344 A -› T 1.00 Exon F -› L Core NO
+1G II 10,490,952 A -› G 1.00 IG - Core -
+1G II 12,692,797 T -› C 1.00 IG - Arm -
+1G II 13,354,566 A -› T 1.00 IG - Arm -
+1G II 14,982,210 A -› T 1.00 Intron - Tip NO
+1G III 1,133,881 A -› T 1.00 Intron - Arm NO
+1G III 1,603,825 G -› A 1.00 IG - Arm -
+1G III 2,294,076 C -› A 1.00 Exon F -› L Arm NO
+1G III 3,024,879 G -› A 1.00 Intron - Arm NO
+1G III 5,270,506 T -› A 1.00 Intron - Core NO
+1G III 6,959,909 A -› T 1.00 Exon L -› I Core YES
+1G III 7,004,421 G -› A 1.00 Intron - Core NO
+1G III 7,504,163 T -› G 1.00 IG - Core -
+1G III 10,399,956 G -› T 1.00 Intron - Arm YES
+1G III 10,867,837 T -› A 1.00 Intron - Arm YES
+1G III 12,922,603 A -› G 1.00 Intron - Arm NO
+1G III 13,230,081 A -› G 1.00 IG - Tip -
+1G IV 3,584,917 C -› G 1.00 Exon R -› P Arm NO
+1G IV 6,612,112 G -› T 1.00 Intron - Core NO
+1G IV 8,058,815 A -› T 1.00 IG - Core -
+1G IV 11,504,929 G -› T 1.00 Exon M -› I Core NO
+1G IV 11,793,629 G -› T 1.00 IG - Core -
+1G IV 15,554,992 G -› A 1.00 IG - Arm -
+1G V 605,086 C -› G 1.00 IG - Tip -
+1G V 1,460,256 A -› T 1.00 IG - Arm -
+1G V 1,496,399 C -› G 1.00 Exon Synonymous Arm NO
+1G V 12,040,653 C -› T 1.00 Intron - Core YES
+1G V 12,357,224 T -› G 1.00 IG - Core -
+1G V 12,697,292 G -› A 1.00 Exon Synonymous Core YES
+1G V 15,510,622 T -› A 1.00 Intron - Core NO
+1G V 15,807,685 G -› A 1.00 IG - Core -
+1G V 15,807,696 G -› A 1.00 IG - Core -
+1G V 19,825,243 A -› T 1.00 Intron - Arm NO
+1G X 251,254 G -› A 1.00 IG - Tip -
+1G X 1,312,173 A -› T 1.00 Intron - Arm NO
+1G X 4,259,285 A -› T 1.00 IG - Arm -
+1G X 4,851,746 T -› C 1.00 Intron - Arm NO
+1G X 5,114,298 G -› T 1.00 Exon S -› R Arm NO
+1G X 7,562,966 G -› A 1.00 Exon V -› I Core NO
+1G X 7,666,965 C -› A 1.00 Exon G -› C Core NO
+1G X 9,142,940 G -› C 1.00 Exon D -› H Core NO
+1G X 9,577,367 G -› T 1.00 IG - Core -
+1G X 10,399,592 G -› A 1.00 Exon Synonymous Core NO
+1G X 12,694,950 G -› C 1.00 Intron - Arm NO
+1G X 14,939,740 G -› A 1.00 Exon Synonymous Arm NO
+1G X 16,560,875 G -› A 1.00 Exon W -› * Tip NO
+1H I 451,427 G -› C 1.00 Exon W -› C Tip YES
+1H I 1,203,642 A -› T 1.00 Intron - Arm NO
+1H I 2,718,391 G -› A 1.00 Intron - Arm NO
+1H I 4,595,261 C -› A 1.00 IG - Core -
+1H I 8,038,081 A -› T 1.00 Intron - Core NO
+1H I 11,840,480 A -› T 1.00 Intron - Arm NO
+1H II 1,389,812 A -› C 1.00 Intron - Arm NO
+1H II 1,527,610 A -› T 1.00 IG - Arm -
+1H II 1,722,852 C -› G 1.00 Exon N -› K Arm NO
+1H II 1,995,494 C -› T 1.00 Exon Synonymous Arm NO
+1H II 2,513,105 C -› A 1.00 Intron - Arm NO
+1H II 10,399,560 C -› G 1.00 IG - Core -
+1H II 11,792,454 G -› A 1.00 Intron - Core NO
+1H II 12,230,533 A -› T 1.00 Intron - Arm NO
+1H II 14,019,446 T -› G 1.00 Exon T -› P Arm NO
+1H III 2,291,000 A -› T 1.00 IG - Arm -
+1H III 3,664,922 C -› A 1.00 IG - Arm -
+1H III 5,534,123 A -› T 1.00 Intron - Core NO
+1H III 7,914,603 T -› A 1.00 Exon N -› Y Core YES
+1H III 8,015,102 C -› T 1.00 Intron - Core YES
+1H III 8,081,147 A -› T 1.00 Intron - Core YES
+1H III 8,575,094 T -› C 1.00 IG - Core -
+1H III 11,656,794 T -› A 1.00 IG - Arm -
+1H III 12,425,324 G -› T 1.00 IG - Arm -
+1H III 12,579,799 G -› T 1.00 IG - Arm -
+1H III 12,590,466 A -› T 1.00 IG - Arm -
+1H IV 387,293 A -› G 1.00 Exon K -› E Tip YES
+1H IV 3,192,640 G -› A 1.00 IG - Arm -
+1H IV 4,451,412 A -› C 1.00 Intron - Core NO
+1H IV 11,001,324 T -› A 1.00 IG - Core -
+1H IV 13,062,661 G -› C 1.00 IG - Arm -
+1H IV 13,120,501 C -› A 1.00 Exon Synonymous Arm NO
+1H IV 14,182,891 G -› C 1.00 Exon A -› P Arm NO
+1H IV 14,811,864 A -› T 1.00 IG - Arm -
+1H V 1,454,760 C -› T 1.00 IG - Arm -
+1H V 2,955,886 C -› T 1.00 IG - Arm -
+1H V 4,176,774 G -› C 1.00 Exon Synonymous Arm YES
+1H V 6,751,577 G -› A 1.00 IG - Core -
+1H V 7,872,315 G -› A 1.00 IG - Core -
+1H V 10,897,227 A -› T 1.00 IG - Core -
+1H V 15,373,521 A -› T 1.00 IG - Core -
+1H V 16,803,191 T -› A 1.00 Intron - Arm YES
+1H V 16,953,169 C -› A 1.00 Intron - Arm NO
+1H V 18,785,193 T -› A 1.00 Intron - Arm NO
+1H X 868,213 C -› A 1.00 Intron - Arm NO
+1H X 2,022,541 A -› G 1.00 Exon N -› S Arm NO
+1H X 2,539,787 C -› A 1.00 IG - Arm -
+1H X 4,740,289 C -› A 1.00 Intron - Arm YES
+1H X 5,344,810 T -› A 1.00 Intron - Arm YES
+1H X 6,289,115 T -› A 1.00 Exon K -› * Core NO
+1H X 6,761,248 T -› C 1.00 Intron - Core NO
+1H X 7,253,191 C -› G 1.00 Exon Q -› H Core NO
+1H X 7,268,848 T -› A 1.00 Exon H -› L Core NO
+1H X 10,743,574 C -› G 1.00 Exon H -› Q Core NO
+1H X 11,676,739 A -› T 1.00 Intron - Core NO
+1H X 13,635,871 G -› A 1.00 IG - Arm -
+1H X 13,953,422 C -› T 1.00 Exon Synonymous Arm YES
+1H X 14,575,385 T -› A 1.00 Intron - Arm NO
+1H X 16,360,052 C -› T 1.00 IG - Arm -
+1H X 16,986,189 A -› T 1.00 IG - Tip -
+1K I 1,315,141 C -› T 1.00 Intron - Arm NO
+1K I 5,288,179 C -› A 1.00 Exon V -› F Core YES
+1K I 7,065,746 G -› A 1.00 Intron - Core NO
+1K I 8,637,795 T -› C 1.00 Intron - Core YES
+1K I 11,946,435 C -› T 1.00 IG - Arm -
+1K I 12,985,284 T -› C 1.00 IG - Arm -
+1K I 13,149,364 C -› G 1.00 IG - Arm -
+1K I 14,779,404 G -› T 1.00 Intron - Arm YES
+1K II 729,928 G -› A 1.00 Intron - Arm YES
+1K II 1,142,252 T -› C 1.00 Exon K -› E Arm NO
+1K II 4,592,114 T -› A 1.00 Intron - Arm YES
+1K II 10,346,980 T -› A 1.00 Exon * -› K Core NO
+1K II 12,131,451 A -› C 1.00 IG - Arm -
+1K II 12,770,269 T -› A 1.00 Intron - Arm NO
+1K II 13,747,241 A -› C 1.00 Intron - Arm YES
+1K II 14,903,248 G -› A 1.00 Intron - Tip NO
+1K III 2,980,942 C -› T 1.00 IG - Arm -
+1K III 7,140,148 A -› C 1.00 Intron - Core NO
+1K III 7,223,855 T -› C 1.00 Intron - Core YES
+1K III 13,297,295 G -› A 1.00 Exon E -› K Tip YES
+1K III 13,674,659 C -› G 1.00 Exon Synonymous Tip YES
+1K IV 1,494,494 T -› C 1.00 Intron - Arm YES
+1K IV 3,465,669 C -› T 1.00 Exon Q -› * Arm NO
+1K IV 4,609,673 G -› C 1.00 Exon R -› G Core NO
+1K IV 6,550,355 T -› C 1.00 Exon Synonymous Core YES
+1K IV 6,638,820 C -› G 1.00 Intron - Core NO
+1K IV 10,797,933 G -› A 1.00 IG - Core -
+1K IV 13,278,116 A -› T 1.00 Intron - Arm YES
+1K IV 16,792,387 G -› T 1.00 IG - Tip -
+1K V 2,486,788 T -› A 1.00 Intron - Arm NO
+1K V 6,170,251 C -› A 1.00 Exon V -› F Core NO
+1K V 8,030,404 G -› A 1.00 Exon G -› R Core YES
+1K V 10,114,910 G -› T 1.00 Exon C -› F Core NO
+1K V 12,284,063 A -› T 1.00 UTR - Core YES
+1K V 15,024,814 T -› A 1.00 Exon F -› L Core NO
+1K V 16,051,914 G -› A 1.00 IG - Core -
+1K V 19,134,709 A -› G 1.00 IG - Arm -
+1K X 997,993 G -› A 1.00 IG - Arm -
+1K X 2,249,686 T -› A 1.00 IG - Arm -
+1K X 2,883,621 C -› A 1.00 IG - Arm -
+1K X 3,788,050 C -› T 1.00 Exon Synonymous Arm NO
+1K X 4,549,884 C -› T 1.00 Exon R -› H Arm NO
+1K X 6,519,720 G -› A 1.00 Intron - Core NO
+1K X 6,853,700 C -› A 1.00 Exon P -› Q Core NO
+1K X 8,167,946 C -› A 1.00 IG - Core -
+1K X 12,692,698 C -› T 1.00 Exon Synonymous Arm NO
+1K X 13,044,262 T -› A 1.00 IG - Arm -
+1K X 13,337,541 G -› A 1.00 IG - Arm -
+1K X 13,891,591 A -› T 1.00 Intron - Arm NO
+1K X 16,652,557 C -› T 1.00 Exon G -› R Tip NO
+1K X 16,983,704 G -› A 1.00 IG - Tip -
+1M I 1,624,653 A -› T 1.00 Intron - Arm YES
+1M I 1,976,509 G -› A 1.00 IG - Arm -
+1M I 6,176,020 C -› G 1.00 IG - Core -
+1M I 7,752,646 G -› A 1.00 IG - Core -
+1M I 8,760,125 A -› T 1.00 IG - Core -
+1M I 9,181,631 T -› A 1.00 IG - Core -
+1M I 12,411,891 G -› A 1.00 IG - Arm -
+1M I 14,495,775 T -› C 1.00 Intron - Arm YES
+1M I 14,514,630 A -› T 1.00 Intron - Arm NO
+1M II 1,367,922 T -› A 1.00 IG - Arm -
+1M II 5,042,926 C -› T 1.00 IG - Core -
+1M II 6,872,450 A -› T 1.00 Exon C -› S Core YES
+1M II 8,244,801 T -› G 1.00 Intron - Core NO
+1M II 9,403,566 C -› T 1.00 IG - Core -
+1M II 9,851,050 T -› C 1.00 IG - Core -
+1M II 11,003,792 G -› T 1.00 Intron - Core NO
+1M II 11,438,155 A -› G 1.00 Intron - Core NO
+1M II 14,229,109 T -› A 1.00 Intron - Arm NO
+1M II 14,257,037 T -› A 1.00 IG - Arm -
+1M II 14,794,593 C -› G 1.00 IG - Tip -
+1M III 817,670 A -› G 1.00 Intron - Arm NO
+1M III 1,084,801 A -› T 1.00 Intron - Arm YES
+1M III 1,150,019 G -› A 1.00 IG - Arm -
+1M III 3,440,966 C -› T 1.00 Exon Synonymous Arm NO
+1M III 3,694,468 A -› G 1.00 IG - Arm -
+1M III 9,346,062 T -› C 1.00 IG - Core -
+1M III 10,354,509 C -› T 1.00 Exon Q -› * Arm YES
+1M III 10,785,465 C -› T 1.00 Intron - Arm NO
+1M III 11,168,486 T -› A 1.00 Intron - Arm NO
+1M IV 821,580 T -› A 1.00 Intron - Arm NO
+1M IV 1,158,769 A -› G 1.00 IG - Arm -
+1M IV 1,595,102 C -› A 1.00 Intron - Arm YES
+1M IV 2,876,701 A -› G 1.00 Intron - Arm YES
+1M IV 3,903,580 C -› A 1.00 Exon A -› E Core NO
+1M IV 7,057,358 G -› T 1.00 IG - Core -
+1M IV 9,032,505 A -› G 1.00 Intron - Core NO
+1M IV 14,031,367 A -› G 1.00 IG - Arm -
+1M IV 16,174,310 T -› A 1.00 IG - Arm -
+1M V 4,310,252 C -› G 1.00 IG - Arm -
+1M V 4,600,051 G -› T 1.00 Intron - Arm YES
+1M V 8,132,754 A -› T 1.00 Intron - Core YES
+1M V 9,365,895 C -› T 1.00 IG - Core -
+1M V 13,668,439 G -› T 1.00 Exon G -› C Core YES
+1M V 13,828,599 G -› A 1.00 Intron - Core NO
+1M V 17,637,823 A -› T 1.00 IG - Arm -
+1M V 17,689,357 A -› T 1.00 Intron - Arm NO
+1M V 18,970,925 T -› A 1.00 Intron - Arm NO
+1M V 19,607,219 T -› G 1.00 IG - Arm -
+1M V 20,505,378 A -› G 1.00 IG - Tip -
+1M X 761,145 A -› T 1.00 IG - Arm -
+1M X 842,082 C -› T 1.00 IG - Arm -
+1M X 2,052,174 A -› G 1.00 Exon I -› V Arm NO
+1M X 2,177,732 A -› T 1.00 IG - Arm -
+1M X 2,330,942 G -› T 1.00 IG - Arm -
+1M X 2,448,910 C -› T 1.00 Intron - Arm NO
+1M X 4,481,125 A -› T 1.00 IG - Arm -
+1M X 6,241,408 G -› A 1.00 Exon G -› R Core YES
+1M X 6,501,258 T -› C 1.00 Intron - Core NO
+1M X 9,222,676 C -› T 1.00 Exon R -› Q Core NO
+1M X 11,391,372 G -› T 1.00 Intron - Core NO
+1M X 11,924,759 A -› T 1.00 Intron - Core NO
+1M X 15,837,512 T -› C 1.00 Intron - Arm NO
+1N I 980,010 G -› A 1.00 IG - Arm -
+1N I 1,406,931 A -› C 1.00 Intron - Arm YES
+1N I 1,507,376 T -› A 1.00 Intron - Arm NO
+1N I 4,248,670 T -› A 1.00 Intron - Core YES
+1N I 4,452,228 C -› T 1.00 Intron - Core NO
+1N I 9,436,097 G -› A 1.00 Intron - Core NO
+1N I 12,657,917 A -› T 1.00 Exon L -› * Arm NO
+1N I 14,712,337 T -› C 1.00 Intron - Arm YES
+1N II 11,959,265 A -› G 1.00 Exon N -› S Core NO
+1N II 12,638,187 T -› G 1.00 Intron - Arm NO
+1N II 13,673,677 G -› T 1.00 Intron - Arm YES
+1N II 14,300,619 C -› A 1.00 Intron - Arm NO
+1N III 563,185 C -› T 1.00 Intron - Arm NO
+1N III 1,081,617 A -› G 1.00 Intron - Arm YES
+1N III 1,895,253 C -› G 1.00 Intron - Arm NO
+1N III 2,407,293 A -› T 1.00 Intron - Arm YES
+1N III 2,411,144 A -› T 1.00 Exon I -› N Arm YES
+1N III 2,995,082 T -› A 1.00 IG - Arm -
+1N III 3,618,134 A -› T 1.00 Intron - Arm NO
+1N III 6,751,878 T -› A 1.00 Intron - Core NO
+1N III 10,376,773 T -› C 1.00 IG - Arm -
+1N III 11,963,005 A -› G 1.00 Intron - Arm NO
+1N IV 1,748,891 G -› A 1.00 Intron - Arm YES
+1N IV 5,647,953 A -› T 1.00 IG - Core -
+1N IV 8,884,288 A -› G 1.00 IG - Core -
+1N IV 10,027,627 G -› T 1.00 Exon N -› K Core YES
+1N IV 10,897,888 A -› C 1.00 Exon S -› A Core NO
+1N IV 10,944,581 G -› A 1.00 IG - Core -
+1N IV 11,824,225 T -› A 1.00 IG - Core -
+1N IV 16,525,109 C -› G 1.00 Exon V -› L Arm NO
+1N V 5,811,968 T -› G 1.00 IG - Arm -
+1N V 9,027,052 C -› A 1.00 IG - Core -
+1N V 9,360,125 G -› A 1.00 IG - Core -
+1N V 9,632,158 A -› G 1.00 Exon N -› S Core NO
+1N V 10,285,793 T -› A 1.00 IG - Core -
+1N V 14,375,245 G -› A 1.00 Intron - Core NO
+1N V 15,019,656 C -› G 1.00 Exon K -› N Core NO
+1N V 15,331,799 C -› T 1.00 Exon R -› C Core NO
+1N V 16,295,829 T -› G 1.00 IG - Core -
+1N V 16,749,674 C -› T 1.00 Intron - Arm NO
+1N V 16,787,226 A -› T 1.00 Intron - Arm NO
+1N V 18,359,775 A -› T 1.00 IG - Arm -
+1N V 19,109,789 G -› C 1.00 Intron - Arm NO
+1N V 20,680,636 C -› A 1.00 IG - Tip -
+1N V 20,884,621 C -› T 1.00 Exon Synonymous Tip NO
+1N X 3,202,370 T -› G 1.00 IG - Arm -
+1N X 3,650,247 A -› G 1.00 IG - Arm -
+1N X 4,416,679 T -› C 1.00 IG - Arm -
+1N X 4,662,351 C -› T 1.00 IG - Arm -
+1N X 7,128,558 T -› G 1.00 IG - Core -
+1N X 10,231,159 G -› A 1.00 IG - Core -
+1N X 11,676,739 A -› T 1.00 Intron - Core NO
+1N X 11,996,076 G -› C 1.00 IG - Core -
+1N X 14,261,973 A -› G 1.00 Intron - Arm NO
+1N X 14,651,630 C -› A 1.00 IG - Arm -
+1N X 14,742,422 T -› A 1.00 IG - Arm -
+1O I 458,271 A -› T 1.00 Exon E -› D Tip YES
+1O I 580,168 C -› A 1.00 IG - Arm -
+1O I 996,228 G -› A 1.00 Intron - Arm NO
+1O I 1,090,078 C -› G 1.00 Exon G -› A Arm NO
+1O I 2,765,719 G -› A 1.00 Intron - Arm NO
+1O I 3,131,460 T -› A 1.00 IG - Arm -
+1O I 4,304,373 G -› A 1.00 Intron - Core YES
+1O I 4,986,849 C -› A 1.00 IG - Core -
+1O I 7,909,945 T -› C 1.00 Intron - Core NO
+1O I 8,880,476 C -› G 1.00 Exon Q -› E Core NO
+1O I 11,486,824 T -› A 1.00 IG - Arm -
+1O I 11,880,787 T -› G 1.00 Intron - Arm NO
+1O I 13,012,096 A -› T 1.00 Intron - Arm YES
+1O I 13,773,528 T -› G 1.00 Intron - Arm YES
+1O II 1,175,501 C -› A 1.00 IG - Arm -
+1O II 1,656,662 A -› T 1.00 Intron - Arm NO
+1O II 2,333,946 T -› A 1.00 Exon N -› K Arm NO
+1O II 2,487,549 C -› A 1.00 IG - Arm -
+1O II 2,728,122 A -› T 1.00 IG - Arm -
+1O II 2,818,126 C -› T 1.00 Intron - Arm NO
+1O II 3,373,572 G -› T 1.00 IG - Arm -
+1O II 5,855,516 C -› T 1.00 Exon S -› L Core NO
+1O II 11,524,963 C -› A 1.00 Exon V -› F Core YES
+1O II 12,090,688 C -› A 1.00 IG - Arm -
+1O III 30,076 A -› T 1.00 IG - Tip -
+1O III 226,189 C -› A 1.00 Intron - Tip NO
+1O III 2,362,833 A -› G 1.00 IG - Arm -
+1O III 5,159,098 C -› T 1.00 Exon R -› H Core YES
+1O III 7,207,420 T -› C 1.00 Exon V -› A Core NO
+1O III 8,748,674 G -› A 1.00 Exon H -› Y Core YES
+1O III 9,564,080 A -› T 1.00 Intron - Core YES
+1O III 10,453,042 G -› A 1.00 Exon Synonymous Arm YES
+1O III 11,274,297 A -› T 1.00 IG - Arm -
+1O III 11,274,379 G -› T 1.00 IG - Arm -
+1O III 12,210,166 C -› G 1.00 Intron - Arm NO
+1O III 12,316,821 T -› A 1.00 IG - Arm -
+1O III 12,539,763 A -› G 1.00 Intron - Arm YES
+1O IV 3,164,723 T -› G 1.00 IG - Arm -
+1O IV 3,645,620 C -› A 1.00 Exon V -› L Arm YES
+1O IV 3,742,056 A -› T 1.00 IG - Arm -
+1O IV 6,850,958 G -› T 1.00 Intron - Core NO
+1O IV 7,031,324 C -› G 1.00 Exon V -› L Core YES
+1O IV 9,240,378 C -› G 1.00 Intron - Core YES
+1O IV 9,251,257 C -› T 1.00 IG - Core -
+1O IV 10,836,572 A -› G 1.00 Exon V -› A Core NO
+1O IV 12,594,884 G -› A 1.00 Exon P -› S Core NO
+1O IV 13,884,133 C -› T 1.00 UTR - Arm YES
+1O IV 14,223,531 C -› A 1.00 Intron - Arm YES
+1O IV 17,107,195 C -› T 1.00 Exon R -› K Tip NO
+1O V 2,905,552 G -› T 1.00 IG - Arm -
+1O V 3,449,541 T -› A 1.00 IG - Arm -
+1O V 3,865,372 G -› A 1.00 IG - Arm -
+1O V 4,324,923 A -› G 1.00 Intron - Arm NO
+1O V 4,352,790 A -› C 1.00 Intron - Arm NO
+1O V 4,881,103 A -› T 1.00 Intron - Arm NO
+1O V 6,997,558 A -› G 1.00 IG - Core -
+1O V 10,027,533 G -› A 1.00 Intron - Core YES
+1O V 11,367,605 G -› A 1.00 IG - Core -
+1O V 12,446,872 C -› T 1.00 Exon C -› Y Core NO
+1O V 13,083,665 G -› A 1.00 Intron - Core NO
+1O V 15,369,216 A -› T 1.00 Exon N -› K Core NO
+1O V 18,828,132 C -› T 1.00 Intron - Arm NO
+1O V 19,324,032 C -› T 1.00 IG - Arm -
+1O V 19,571,530 G -› C 1.00 Intron - Arm NO
+1O V 19,977,175 T -› C 1.00 Intron - Arm NO
+1O V 20,840,733 G -› A 1.00 Exon C -› Y Tip NO
+1O X 314,108 T -› A 1.00 IG - Tip -
+1O X 916,261 C -› T 1.00 Intron - Arm NO
+1O X 1,981,844 T -› G 1.00 IG - Arm -
+1O X 2,197,104 G -› T 1.00 Exon P -› Q Arm NO
+1O X 2,375,828 A -› T 1.00 IG - Arm -
+1O X 3,741,816 G -› A 1.00 Intron - Arm NO
+1O X 3,996,680 T -› A 1.00 IG - Arm -
+1O X 4,520,365 G -› A 1.00 Intron - Arm NO
+1O X 5,299,254 A -› T 1.00 Intron - Arm NO
+1O X 5,987,169 C -› A 1.00 Exon Q -› K Arm NO
+1O X 6,222,136 C -› A 1.00 IG - Core -
+1O X 8,044,450 A -› G 1.00 IG - Core -
+1O X 10,041,075 C -› A 1.00 Intron - Core NO
+1O X 11,506,635 G -› T 1.00 Intron - Core NO
+1O X 12,365,216 G -› A 1.00 IG - Core -
+1O X 12,572,459 A -› T 1.00 IG - Arm -
+1O X 14,230,275 G -› A 1.00 Intron - Arm NO
+1P I 142,547 A -› G 1.00 Exon I -› V Tip NO
+1P I 208,489 G -› T 1.00 IG - Tip -
+1P I 906,054 G -› T 1.00 IG - Arm -
+1P I 1,233,018 C -› G 1.00 Intron - Arm YES
+1P I 3,427,714 A -› G 1.00 Intron - Arm NO
+1P I 3,427,723 T -› A 1.00 Intron - Arm NO
+1P I 3,428,262 C -› T 1.00 Intron - Arm NO
+1P I 3,428,274 G -› A 1.00 Intron - Arm NO
+1P I 5,623,004 A -› T 1.00 Exon K -› * Core YES
+1P I 6,387,000 G -› T 1.00 Intron - Core NO
+1P I 7,671,490 A -› G 1.00 Exon Synonymous Core NO
+1P I 8,243,076 G -› T 1.00 Exon Synonymous Core NO
+1P I 10,255,724 T -› G 1.00 Exon T -› P Core NO
+1P I 11,893,016 G -› A 1.00 Exon T -› M Arm YES
+1P I 12,235,719 A -› G 1.00 IG - Arm -
+1P I 13,955,959 C -› A 1.00 IG - Arm -
+1P I 14,956,070 T -› A 1.00 Exon Q -› L Tip NO
+1P II 267,219 T -› A 1.00 Intron - Tip NO
+1P II 1,701,298 G -› A 1.00 IG - Arm -
+1P II 4,059,170 C -› G 1.00 Exon T -› R Arm NO
+1P II 5,807,049 C -› A 1.00 IG - Core -
+1P II 6,919,316 C -› A 1.00 IG - Core -
+1P II 10,000,606 C -› A 1.00 Intron - Core NO
+1P II 10,362,773 A -› G 1.00 Intron - Core NO
+1P II 10,453,477 T -› A 1.00 Intron - Core YES
+1P II 13,083,852 A -› T 1.00 IG - Arm -
+1P II 14,700,841 T -› A 1.00 IG - Tip -
+1P II 15,069,939 G -› T 1.00 Exon F -› L Tip YES
+1P III 1,410,201 A -› T 1.00 Intron - Arm YES
+1P III 1,578,692 A -› T 1.00 Intron - Arm YES
+1P III 4,582,166 C -› G 1.00 Intron - Core YES
+1P III 5,325,032 T -› A 1.00 Intron - Core YES
+1P III 7,130,418 A -› T 1.00 Exon * -› L Core NO
+1P III 7,781,404 G -› A 1.00 Intron - Core NO
+1P III 9,075,755 A -› G 1.00 IG - Core -
+1P III 9,734,542 G -› T 1.00 IG - Core -
+1P III 10,172,846 G -› C 1.00 Intron - Core NO
+1P III 10,370,129 C -› T 1.00 Intron - Arm NO
+1P III 11,257,759 T -› A 1.00 Intron - Arm NO
+1P III 11,287,269 T -› A 1.00 Intron - Arm NO
+1P IV 7,933,113 G -› C 1.00 Intron - Core NO
+1P IV 7,974,713 G -› A 1.00 IG - Core -
+1P IV 8,696,535 G -› C 1.00 IG - Core -
+1P IV 10,705,601 C -› A 1.00 Intron - Core NO
+1P IV 13,344,811 G -› A 1.00 Intron - Arm NO
+1P IV 13,451,834 G -› A 1.00 Intron - Arm NO
+1P IV 13,465,017 C -› T 1.00 IG - Arm -
+1P IV 15,400,006 C -› T 1.00 IG - Arm -
+1P IV 15,844,135 T -› G 1.00 IG - Arm -
+1P V 1,925,424 C -› T 1.00 Exon Synonymous Arm NO
+1P V 2,340,354 G -› A 1.00 Exon P -› L Arm NO
+1P V 9,255,911 T -› C 1.00 Exon Synonymous Core NO
+1P V 12,102,260 T -› A 1.00 Intron - Core NO
+1P V 14,176,272 C -› T 1.00 Exon E -› K Core NO
+1P V 15,249,786 T -› G 1.00 IG - Core -
+1P V 17,416,206 C -› T 1.00 Exon Synonymous Arm NO
+1P V 18,160,885 C -› T 1.00 Intron - Arm NO
+1P X 365,812 A -› G 1.00 IG - Tip -
+1P X 653,186 T -› C 1.00 Intron - Arm NO
+1P X 1,027,890 A -› G 1.00 Exon S -› P Arm YES
+1P X 1,240,972 C -› T 1.00 IG - Arm -
+1P X 2,358,622 C -› T 1.00 IG - Arm -
+1P X 5,065,585 C -› T 1.00 Exon S -› L Arm YES
+1P X 5,172,975 G -› T 1.00 IG - Arm -
+1P X 5,523,955 C -› T 1.00 IG - Arm -
+1P X 7,799,447 T -› C 1.00 Exon M -› V Core NO
+1P X 8,628,978 A -› G 1.00 IG - Core -
+1P X 11,338,002 T -› A 1.00 Exon Synonymous Core NO
+1P X 14,361,564 A -› T 1.00 IG - Arm -
+1P X 14,889,839 T -› A 1.00 Exon S -› T Arm NO
+1P X 15,174,282 G -› A 1.00 Intron - Arm YES
+1P X 15,552,827 C -› T 1.00 IG - Arm -
+1P X 15,642,797 T -› A 1.00 IG - Arm -
+1P X 16,165,835 A -› C 1.00 IG - Arm -
+1Q I 158,975 T -› A 1.00 IG - Tip -
+1Q I 1,136,852 T -› A 1.00 Intron - Arm NO
+1Q I 1,542,879 T -› A 1.00 IG - Arm -
+1Q I 1,575,280 A -› G 1.00 Intron - Arm YES
+1Q I 1,897,985 A -› T 1.00 Intron - Arm NO
+1Q I 3,668,179 C -› A 1.00 Intron - Arm NO
+1Q I 4,856,402 G -› A 1.00 Intron - Core NO
+1Q I 5,004,561 T -› C 1.00 Exon Synonymous Core NO
+1Q I 5,912,033 A -› T 1.00 Intron - Core YES
+1Q I 6,011,026 G -› A 1.00 Exon L -› F Core YES
+1Q I 7,367,846 T -› A 1.00 Intron - Core NO
+1Q I 11,766,792 G -› T 1.00 Intron - Arm NO
+1Q II 1,343,871 T -› A 1.00 Intron - Arm NO
+1Q II 1,949,747 C -› T 1.00 Exon Synonymous Arm NO
+1Q II 2,352,080 A -› G 1.00 IG - Arm -
+1Q II 3,972,500 C -› G 1.00 Intron - Arm NO
+1Q II 6,184,654 C -› A 1.00 Exon Synonymous Core YES
+1Q II 6,801,992 C -› T 1.00 IG - Core -
+1Q II 7,067,087 T -› C 1.00 Exon Synonymous Core NO
+1Q II 7,333,711 G -› C 1.00 IG - Core -
+1Q II 11,505,925 C -› A 1.00 IG - Core -
+1Q II 11,909,121 C -› T 1.00 Exon Synonymous Core NO
+1Q II 13,373,179 A -› G 1.00 Intron - Arm NO
+1Q III 410,201 T -› A 1.00 Intron - Tip YES
+1Q III 1,469,413 T -› A 1.00 Intron - Arm YES
+1Q III 1,538,931 C -› A 1.00 Intron - Arm YES
+1Q III 2,329,133 T -› A 1.00 Intron - Arm YES
+1Q III 3,080,639 A -› G 1.00 Intron - Arm YES
+1Q III 4,654,082 C -› T 1.00 IG - Core -
+1Q III 4,821,044 G -› A 1.00 Exon S -› L Core NO
+1Q III 8,564,155 T -› A 1.00 IG - Core -
+1Q III 10,673,983 A -› T 1.00 Exon N -› I Arm YES
+1Q III 12,534,862 T -› A 1.00 IG - Arm -
+1Q III 12,725,240 C -› G 1.00 Intron - Arm NO
+1Q IV 2,007,580 C -› A 1.00 Intron - Arm NO
+1Q IV 2,722,311 A -› T 1.00 Intron - Arm NO
+1Q IV 2,779,915 A -› G 1.00 Exon I -› V Arm NO
+1Q IV 3,244,770 A -› T 1.00 Intron - Arm NO
+1Q IV 9,465,347 C -› T 1.00 Intron - Core NO
+1Q IV 11,106,909 A -› G 1.00 IG - Core -
+1Q IV 11,645,034 A -› C 1.00 Intron - Core NO
+1Q IV 12,593,546 G -› A 1.00 Exon S -› L Core NO
+1Q IV 14,861,234 A -› T 1.00 Intron - Arm NO
+1Q IV 17,092,383 T -› A 1.00 Intron - Tip YES
+1Q V 8,968 T -› C 1.00 IG - Tip -
+1Q V 1,410,114 A -› G 1.00 Intron - Arm NO
+1Q V 1,410,131 C -› G 1.00 Intron - Arm NO
+1Q V 2,216,513 A -› T 1.00 Intron - Arm NO
+1Q V 5,721,489 C -› T 1.00 Exon Synonymous Arm YES
+1Q V 5,798,788 G -› T 1.00 IG - Arm -
+1Q V 8,281,975 T -› A 1.00 Intron - Core NO
+1Q V 8,286,743 T -› C 1.00 IG - Core -
+1Q V 13,105,021 C -› G 1.00 Intron - Core NO
+1Q V 16,878,037 T -› G 1.00 IG - Arm -
+1Q X 78,902 C -› T 1.00 Intron - Tip NO
+1Q X 1,521,756 G -› A 1.00 IG - Arm -
+1Q X 3,620,085 C -› A 1.00 IG - Arm -
+1Q X 7,161,564 C -› T 1.00 Intron - Core NO
+1Q X 11,902,672 T -› C 1.00 Exon * -› W Core NO
+1Q X 12,710,328 T -› A 1.00 Intron - Arm NO
+1Q X 13,370,123 A -› T 1.00 IG - Arm -
+1Q X 14,351,486 G -› A 1.00 Exon G -› E Arm YES
+1Q X 17,173,266 A -› T 1.00 IG - Tip -
+1R I 1,464,982 A -› T 1.00 Intron - Arm YES
+1R I 1,635,421 T -› C 1.00 Intron - Arm NO
+1R I 4,117,598 T -› A 1.00 Exon I -› N Core NO
+1R I 8,714,016 T -› A 1.00 Exon R -› S Core YES
+1R I 8,919,263 G -› T 1.00 IG - Core -
+1R I 10,584,267 G -› A 1.00 IG - Core -
+1R I 11,688,046 T -› A 1.00 IG - Arm -
+1R I 11,915,407 A -› T 1.00 Intron - Arm YES
+1R II 1,842,875 A -› T 1.00 Exon I -› N Arm NO
+1R II 4,168,659 T -› A 1.00 IG - Arm -
+1R II 5,568,812 A -› T 1.00 IG - Core -
+1R II 7,670,739 C -› A 1.00 Exon N -› K Core YES
+1R II 7,720,629 G -› C 1.00 IG - Core -
+1R II 7,917,365 C -› G 1.00 Intron - Core NO
+1R II 9,156,293 T -› A 1.00 IG - Core -
+1R II 9,450,563 C -› T 1.00 Exon G -› D Core NO
+1R II 10,562,576 G -› A 1.00 Exon Synonymous Core YES
+1R II 11,766,232 C -› T 1.00 IG - Core -
+1R II 12,074,524 G -› A 1.00 Intron - Arm YES
+1R II 12,152,735 G -› A 1.00 Exon G -› R Arm NO
+1R II 12,162,087 A -› C 1.00 Exon T -› P Arm YES
+1R II 13,009,518 A -› T 1.00 Intron - Arm NO
+1R II 14,451,918 A -› T 1.00 IG - Arm -
+1R II 14,475,998 A -› T 1.00 Exon F -› I Arm NO
+1R III 93,467 A -› T 1.00 Intron - Tip YES
+1R III 1,471,387 A -› T 1.00 Intron - Arm YES
+1R III 1,479,758 A -› T 1.00 Intron - Arm YES
+1R III 1,855,068 T -› G 1.00 IG - Arm -
+1R III 2,724,531 T -› A 1.00 Intron - Arm YES
+1R III 4,113,658 G -› T 1.00 IG - Core -
+1R III 10,840,544 A -› T 1.00 Intron - Arm YES
+1R III 11,052,599 A -› C 1.00 Intron - Arm YES
+1R III 11,321,801 T -› A 1.00 Intron - Arm YES
+1R III 12,733,825 A -› T 1.00 Intron - Arm NO
+1R III 13,007,768 C -› T 1.00 Intron - Arm NO
+1R IV 193,450 T -› A 1.00 Intron - Tip NO
+1R IV 3,245,950 C -› G 1.00 Intron - Arm NO
+1R IV 3,249,271 C -› A 1.00 Intron - Arm NO
+1R IV 5,543,387 A -› G 1.00 Exon Synonymous Core YES
+1R IV 5,759,721 T -› A 1.00 IG - Core -
+1R IV 5,921,204 G -› C 1.00 Intron - Core NO
+1R IV 6,659,559 C -› A 1.00 Intron - Core NO
+1R IV 6,709,992 T -› A 1.00 IG - Core -
+1R IV 6,735,446 T -› A 1.00 IG - Core -
+1R IV 7,353,371 A -› C 1.00 Intron - Core NO
+1R IV 8,845,839 G -› C 1.00 IG - Core -
+1R IV 11,849,570 A -› C 1.00 Exon S -› R Core NO
+1R IV 14,273,201 T -› A 1.00 IG - Arm -
+1R IV 15,010,608 A -› G 1.00 Exon S -› P Arm YES
+1R IV 16,810,627 G -› A 1.00 IG - Tip -
+1R V 1,541,338 T -› C 1.00 Intron - Arm NO
+1R V 3,606,258 A -› T 1.00 IG - Arm -
+1R V 5,003,712 G -› A 1.00 IG - Arm -
+1R V 5,377,069 C -› T 1.00 Intron - Arm NO
+1R V 7,278,450 A -› T 1.00 Exon I -› F Core NO
+1R V 10,326,986 T -› C 1.00 Intron - Core NO
+1R V 10,686,741 G -› T 1.00 IG - Core -
+1R V 11,324,866 T -› C 1.00 Intron - Core YES
+1R V 14,482,940 C -› T 1.00 IG - Core -
+1R V 14,700,122 C -› T 1.00 Exon S -› L Core NO
+1R V 16,710,040 C -› T 1.00 IG - Arm -
+1R V 18,097,252 A -› G 1.00 Intron - Arm NO
+1R V 19,894,163 A -› T 1.00 Intron - Arm YES
+1R V 20,367,035 C -› T 1.00 IG - Tip -
+1R X 1,075,067 A -› T 1.00 Intron - Arm NO
+1R X 4,389,036 C -› T 1.00 IG - Arm -
+1R X 4,858,409 G -› T 1.00 Intron - Arm NO
+1R X 4,963,844 A -› G 1.00 Exon Synonymous Arm YES
+1R X 5,661,788 A -› C 1.00 IG - Arm -
+1R X 7,311,314 A -› G 1.00 IG - Core -
+1R X 7,658,921 C -› G 1.00 Exon R -› S Core YES
+1R X 9,565,113 G -› A 1.00 Intron - Core NO
+1R X 12,478,390 T -› C 1.00 IG - Core -
+1R X 14,876,884 A -› T 1.00 Intron - Arm NO
+1R X 15,507,906 G -› A 1.00 IG - Arm -
+1R X 15,509,490 T -› A 1.00 IG - Arm -
+1S I 2,825,056 T -› C 1.00 Exon S -› G Arm NO
+1S I 4,010,510 C -› T 1.00 Intron - Core YES
+1S I 5,442,630 A -› T 1.00 Intron - Core NO
+1S I 6,174,875 C -› T 1.00 IG - Core -
+1S I 8,412,748 T -› G 1.00 IG - Core -
+1S I 10,597,485 A -› G 1.00 Exon Q -› R Core NO
+1S I 13,347,560 G -› T 1.00 Exon G -› V Arm NO
+1S I 13,510,986 A -› T 1.00 Intron - Arm NO
+1S II 3,974,714 G -› A 1.00 Exon Synonymous Arm NO
+1S II 4,777,919 A -› T 1.00 Intron - Arm NO
+1S II 6,384,092 A -› T 1.00 Exon K -› * Core YES
+1S II 7,118,997 C -› A 1.00 Exon T -› K Core NO
+1S II 7,541,070 G -› T 1.00 Intron - Core YES
+1S II 9,082,605 A -› T 1.00 IG - Core -
+1S II 9,560,886 C -› T 1.00 IG - Core -
+1S II 13,281,760 A -› G 1.00 Intron - Arm NO
+1S III 529,220 G -› T 1.00 IG - Arm -
+1S III 977,314 A -› T 1.00 Exon * -› K Arm NO
+1S III 1,679,149 G -› A 1.00 IG - Arm -
+1S III 3,911,206 T -› A 1.00 Intron - Core NO
+1S III 4,877,591 G -› T 1.00 Exon C -› * Core YES
+1S III 5,431,844 C -› A 1.00 Exon C -› F Core NO
+1S III 8,390,541 G -› A 1.00 Intron - Core NO
+1S IV 4,218,708 G -› T 1.00 IG - Core -
+1S IV 8,801,541 C -› T 1.00 Intron - Core NO
+1S IV 9,657,670 C -› A 1.00 IG - Core -
+1S IV 11,039,572 T -› A 1.00 Intron - Core YES
+1S IV 16,063,374 C -› G 1.00 IG - Arm -
+1S IV 17,085,785 G -› A 1.00 Intron - Tip YES
+1S V 781,939 T -› A 1.00 IG - Arm -
+1S V 2,663,436 T -› C 1.00 Intron - Arm NO
+1S V 3,106,116 T -› G 1.00 IG - Arm -
+1S V 5,921,027 T -› C 1.00 IG - Core -
+1S V 8,241,580 A -› T 1.00 Intron - Core NO
+1S V 9,224,313 C -› T 1.00 Exon Synonymous Core NO
+1S V 9,982,896 C -› G 1.00 Exon T -› R Core NO
+1S V 10,882,942 C -› G 1.00 Exon Synonymous Core NO
+1S V 13,197,878 C -› T 1.00 Exon C -› Y Core NO
+1S V 14,842,200 A -› G 1.00 Exon Synonymous Core YES
+1S V 18,376,132 A -› T 1.00 Intron - Arm NO
+1S X 898,703 G -› A 1.00 IG - Arm -
+1S X 3,981,749 G -› A 1.00 IG - Arm -
+1S X 6,470,889 T -› A 1.00 Intron - Core NO
+1S X 11,920,732 C -› T 1.00 IG - Core -
+1S X 12,753,158 C -› T 1.00 Intron - Arm NO
+1S X 12,890,332 C -› G 1.00 IG - Arm -
+1S X 13,891,581 T -› A 1.00 Intron - Arm NO
+1S X 14,384,147 A -› T 1.00 IG - Arm -
+1S X 15,294,804 A -› G 1.00 Intron - Arm NO
+1S X 16,054,055 G -› A 1.00 Intron - Arm NO
+1T I 1,203,288 G -› C 1.00 Intron - Arm NO
+1T I 8,754,522 T -› A 1.00 Intron - Core YES
+1T I 11,672,463 C -› T 1.00 IG - Arm -
+1T I 14,507,928 A -› C 1.00 Intron - Arm YES
+1T II 5,038,438 T -› C 1.00 Exon * -› W Core NO
+1T II 7,568,968 C -› A 1.00 IG - Core -
+1T II 8,611,008 T -› C 1.00 IG - Core -
+1T II 9,040,620 A -› G 1.00 Exon L -› P Core NO
+1T II 10,533,312 C -› G 1.00 Intron - Core NO
+1T II 11,476,743 A -› T 1.00 IG - Core -
+1T II 13,370,481 A -› T 1.00 Intron - Arm NO
+1T II 13,849,436 T -› A 1.00 IG - Arm -
+1T II 14,549,286 T -› C 1.00 IG - Arm -
+1T III 1,086,870 C -› T 1.00 Intron - Arm YES
+1T III 1,269,061 C -› A 1.00 Intron - Arm NO
+1T III 7,837,653 T -› G 1.00 IG - Core -
+1T III 7,862,292 T -› C 1.00 Exon V -› A Core YES
+1T III 9,028,534 G -› A 1.00 IG - Core -
+1T III 10,833,343 A -› C 1.00 IG - Arm -
+1T IV 1,471,371 G -› T 1.00 Intron - Arm NO
+1T IV 1,944,893 C -› G 1.00 Exon S -› W Arm NO
+1T IV 2,051,403 G -› C 1.00 IG - Arm -
+1T IV 2,507,203 C -› T 1.00 Intron - Arm NO
+1T IV 3,467,202 T -› G 1.00 IG - Arm -
+1T IV 3,550,795 C -› A 1.00 IG - Arm -
+1T IV 4,638,276 G -› A 1.00 IG - Core -
+1T IV 8,783,550 C -› T 1.00 Exon Synonymous Core NO
+1T IV 9,879,951 A -› T 1.00 Intron - Core NO
+1T IV 10,677,655 C -› T 1.00 Intron - Core NO
+1T IV 11,355,896 A -› C 1.00 Intron - Core NO
+1T IV 12,441,022 C -› T 1.00 Exon P -› L Core NO
+1T IV 15,972,048 T -› G 1.00 IG - Arm -
+1T IV 16,139,898 G -› A 1.00 IG - Arm -
+1T V 173,626 G -› C 1.00 Intron - Tip YES
+1T V 300,403 T -› A 1.00 Intron - Tip YES
+1T V 1,607,969 G -› T 1.00 IG - Arm -
+1T V 9,080,005 T -› C 1.00 IG - Core -
+1T V 11,162,406 C -› G 1.00 IG - Core -
+1T V 11,606,792 A -› T 1.00 IG - Core -
+1T V 11,891,763 C -› T 1.00 IG - Core -
+1T V 13,156,506 G -› C 1.00 Intron - Core NO
+1T V 15,268,367 T -› C 1.00 IG - Core -
+1T X 2,401,268 T -› A 1.00 Intron - Arm NO
+1T X 2,629,631 A -› G 1.00 Exon L -› P Arm NO
+1T X 4,000,028 C -› T 1.00 IG - Arm -
+1T X 14,314,413 T -› A 1.00 Intron - Arm NO
+1T X 15,056,207 G -› C 1.00 Intron - Arm NO

@@ -1,0 +1,24 @@
+---
+title: "Epimutations overlap with set-25 and set-32"
+author: "Toni Beltran"
+date: "10/11/2019"
+output: html_document
+---
+
+```{r load data}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/07_Gene_Sets")
+set25<-read.table("set25_genes_cosmidID.txt")
+set32<-read.table("set32_genes_cosmidID.txt")
+
+epimuts_gens25100<-read.table("../03_Figure1/epimuts_25100_noiso.txt")
+epimuts_genbygen<-read.table("../03_Figure1/epimuts_genbygen_noiso.txt")
+
+intersect(epimuts_gens25100$V2,set25$x) #23 genes
+intersect(epimuts_gens25100$V2,set32$x) #30 genes
+
+intersect(epimuts_genbygen$V2,set25$x) #8 genes
+intersect(epimuts_genbygen$V2,set32$x) #6 genes
+
+```
+

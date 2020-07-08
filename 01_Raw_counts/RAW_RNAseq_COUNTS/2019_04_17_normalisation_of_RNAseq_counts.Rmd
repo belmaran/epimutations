@@ -1,0 +1,61 @@
+---
+title: "2019_04_17_normalisation_of_RNAseq_counts"
+author: "Toni Beltran"
+date: "17/04/2019"
+output: html_document
+---
+
+```{r load data and merge tables}
+
+setwd("/Users/ab6415/Bioinformatics/Analysis/EpiMALs_PAPER_ANALYSES/01_Raw_counts/RAW_RNAseq_COUNTS/")
+
+genbygen_A<-read.table("PMA_A_RNAseq_genbygen"); genbygen_A<-genbygen_A[-c(20321:20325),] #remove final lines of htseq-count output
+genbygen_B<-read.table("PMA_B_RNAseq_genbygen"); genbygen_B<-genbygen_B[-c(20321:20325),] #remove final lines of htseq-count output
+rownames(genbygen_A)<-genbygen_A$V1; genbygen_A$V1<-NULL
+rownames(genbygen_B)<-genbygen_B$V1; genbygen_B$V1<-NULL
+
+genbygen_AB<-merge(genbygen_A,genbygen_B,by=0,all=TRUE); rownames(genbygen_AB)<-genbygen_AB$Row.names; genbygen_AB$Row.names<-NULL
+colnames(genbygen_AB)<-c("A1","A2","A3","A4","A5","A6","A8","A9","A10","A11","A12","A13",
+                         "B1","B2","B3","B4","B5","B6","B8","B9","B10","B11","B12","B13")
+
+gen25<-read.table("RNAseq_counts_gen25.txt")
+gen100<-read.table("RNAseq_counts_gen100.txt")
+rownames(gen25)<-gen25$V1; gen25$V1<-NULL; gen25$V2<-NULL
+rownames(gen100)<-gen100$V1; gen100$V1<-NULL; gen100$V2<-NULL
+
+gens25_100<-merge(gen25,gen100,by=0); rownames(gens25_100)<-gens25_100$Row.names; gens25_100$Row.names<-NULL
+colnames(gens25_100)<-c("A25","B25","C25","D25","F25","G25","H25","I25","J25","K25","L25","PMA",
+                        "A100","B100","C100","D100","F100","G100","H100","I100","J100","K100","L100")
+all_samples_RNAseq<-merge(genbygen_AB,gens25_100,by=0)
+rownames(all_samples_RNAseq)<-all_samples_RNAseq$Row.names
+all_samples_RNAseq$Row.names<-NULL
+
+```
+
+```{r DEseq normalisation}
+
+library(gplots)
+
+heatmap.2(cor(all_samples_RNAseq),trace="none")
+heatmap.2(cor(log2(all_samples_RNAseq+1)),trace="none")
+
+library(DESeq)
+
+DEseqnorm<-function(df,condition){
+  cds<-newCountDataSet(df,condition)
+  cds<-estimateSizeFactors(cds)
+  print(sizeFactors(cds))
+  plot(sizeFactors(cds),colSums(df))
+  print(cor(sizeFactors(cds),colSums(df)))
+  return(counts(cds,normalized=TRUE))
+}
+
+
+all_counts_DEseqnorm<-DEseqnorm(all_samples_RNAseq,condition=colnames(all_samples_RNAseq))
+write.table(all_counts_DEseqnorm,file="../../02_Normalised_counts/RNAseq_DEseqnorm.txt",row.names = TRUE,col.names = TRUE,
+            quote=FALSE)
+
+```
+
+
+
